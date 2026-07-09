@@ -1,6 +1,12 @@
+/**
+ * Возвращает текст подсказки и список аналитических сообщений.
+ * @param {Array} segments – массив отрезков [{x1,y1,x2,y2}, ...]
+ * @returns {{ result: string, analysis: string[] }}
+ */
 export function getHintMessage(segments) {
     const count = segments.length;
 
+    // 0 отрезков – предложение нарисовать первый отрезок
     if (count === 0) {
         return {
             result: 'Нарисуй отрезок, нажав на холст в начале и конце отрезка.',
@@ -8,6 +14,7 @@ export function getHintMessage(segments) {
         };
     }
 
+    // 1 отрезок – нужно больше одного
     if (count === 1) {
         return {
             result: 'Написано отрезки. Отрезки — это больше чем один.',
@@ -15,8 +22,11 @@ export function getHintMessage(segments) {
         };
     }
 
+    // 2 отрезка – проверяем, пересекаются ли и где именно
     if (count === 2) {
-        const [s1, s2] = segments;
+        const [s1, s2] = segments; // берём первый и второй отрезок
+
+        // Вычисляем точку пересечения (внутренняя функция)
         const intersectPt = (function() {
             const x1 = s1.x1, y1 = s1.y1, x2 = s1.x2, y2 = s1.y2;
             const x3 = s2.x1, y3 = s2.y1, x4 = s2.x2, y4 = s2.y2;
@@ -30,6 +40,7 @@ export function getHintMessage(segments) {
             return null;
         })();
 
+        // Если не пересекаются
         if (!intersectPt) {
             return {
                 result: 'Отрезки это хорошо, но они должны пересекаться.',
@@ -37,6 +48,7 @@ export function getHintMessage(segments) {
             };
         }
 
+        // Проверяем, является ли точка пересечения серединой отрезка (допуск 2 пикселя)
         function isMidpoint(px, py, seg) {
             const mx = (seg.x1 + seg.x2) / 2;
             const my = (seg.y1 + seg.y2) / 2;
@@ -46,12 +58,14 @@ export function getHintMessage(segments) {
         const mid1 = isMidpoint(intersectPt.x, intersectPt.y, s1);
         const mid2 = isMidpoint(intersectPt.x, intersectPt.y, s2);
 
+        // Если оба пересекаются в своих серединах – отлично, можно ставить точки
         if (mid1 && mid2) {
             return {
                 result: 'Пересекаются в середине. Теперь расставь точки A, B, C, D, E.',
                 analysis: ['✅ Пересечение в серединах обоих отрезков. Можно обозначать вершины.']
             };
         } else {
+            // Иначе – пересекаются, но не в серединах
             return {
                 result: 'Пересекаются не в середине.',
                 analysis: ['ℹ️ Отрезки пересекаются, но не в своих серединах. Добейтесь пересечения в центре.']
@@ -59,6 +73,7 @@ export function getHintMessage(segments) {
         }
     }
 
+    // Больше двух отрезков – общая подсказка
     return {
         result: 'На холсте несколько отрезков. Продолжай строить чертёж.',
         analysis: ['ℹ️ Несколько отрезков построено.']
