@@ -8,120 +8,150 @@
 </head>
 <body>
     <div class="container">
-        <!-- Заголовок -->
-        <div class="header">
-            <h1 class="task-title" id="taskTitle">Нарисуйте два отрезка</h1>
-            <h2 class="task-subtitle" id="taskSubtitle">Первый чертёж: два пересекающихся отрезка</h2>
-        </div>
-
-        <!-- Вкладки -->
+        <!-- Вкладки в самом верху -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="task1">✏️ Отрезки</button>
             <button class="tab-btn" data-tab="task2">📐 Треугольники</button>
         </div>
 
-        <!-- Основная рабочая область (единая для обеих задач) -->
-        <div class="workspace">
-            <!-- Левая колонка: кнопки A-E (показываются только для task2) -->
-            <div class="left-buttons" id="leftButtons" style="display:none">
-                <button class="point-btn" data-label="A">A</button>
-                <button class="point-btn" data-label="B">B</button>
-                <button class="point-btn" data-label="C">C</button>
-                <button class="point-btn" data-label="D">D</button>
-                <button class="point-btn" data-label="E">E</button>
+        <!-- Контент первой задачи -->
+        <div class="tab-content active" id="task1">
+            <div class="header">
+                <h1 class="task-title">Нарисуйте два отрезка</h1>
+                <h2 class="task-subtitle">Первый чертёж: два пересекающихся отрезка</h2>
             </div>
+            <div class="workspace">
+                <!-- Левая колонка: пусто (нет кнопок A-E) -->
+                <div class="left-buttons"></div>
 
-            <!-- Центр: холст + статус -->
-            <div class="canvas-wrapper">
-                <canvas id="canvas" width="800" height="600"></canvas>
-                <div class="info" id="status">…</div>
-                <div class="result-area" id="resultArea"></div>
+                <!-- Центр: холст + статус -->
+                <div class="canvas-wrapper">
+                    <canvas id="canvas1" width="800" height="600"></canvas>
+                    <div class="info" id="status1">…</div>
+                    <div class="result-area" id="resultArea1"></div>
+                </div>
+
+                <!-- Правая колонка: кнопки управления -->
+                <div class="right-buttons">
+                    <button class="undoBtn">↩️ Отменить</button>
+                    <button class="clearBtn">🧹 Очистить всё</button>
+                    <button class="checkBtn">✅ Проверить</button>
+                    <button class="hintBtn" disabled>💡 Подсказка (30)</button>
+                    <div class="hintProgress" style="width:100%; height:4px; background:#eee; border-radius:2px; margin-top:4px;">
+                        <div class="hintBar" style="width:0%; height:100%; background:#f39c12; border-radius:2px;"></div>
+                    </div>
+                </div>
+
+                <!-- Правая панель: логи и анализ -->
+                <div class="right-panel">
+                    <div class="log-section">
+                        <h2>📍 Возможные точки</h2>
+                        <ul class="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>📋 Отрезки</h2>
+                        <ul class="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>🧩 Производные отрезки</h2>
+                        <ul class="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>🔍 Анализ чертежа</h2>
+                        <ul class="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul>
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <!-- Правая колонка: кнопки управления -->
-            <div class="right-buttons">
-                <button id="undoBtn">↩️ Отменить</button>
-                <button id="clearBtn">🧹 Очистить всё</button>
-                <button id="checkBtn">✅ Проверить</button>
-                <button id="hintBtn" disabled>💡 Подсказка (30)</button>
-                <div id="hintProgress" style="width:100%; height:4px; background:#eee; border-radius:2px; margin-top:4px;">
-                    <div id="hintBar" style="width:0%; height:100%; background:#f39c12; border-radius:2px;"></div>
-                </div>
+        <!-- Контент второй задачи -->
+        <div class="tab-content" id="task2">
+            <div class="header">
+                <h1 class="task-title">Равенство треугольников</h1>
+                <h2 class="task-subtitle">Отрезки AE и DC пересекаются в точке B,<br>являющейся серединой каждого из них. Докажите, что треугольники ABC и EBD равны.</h2>
             </div>
+            <div class="workspace">
+                <!-- Левая колонка: кнопки A-E -->
+                <div class="left-buttons">
+                    <button class="point-btn" data-label="A">A</button>
+                    <button class="point-btn" data-label="B">B</button>
+                    <button class="point-btn" data-label="C">C</button>
+                    <button class="point-btn" data-label="D">D</button>
+                    <button class="point-btn" data-label="E">E</button>
+                </div>
 
-            <!-- Правая панель: логи и анализ -->
-            <div class="right-panel">
-                <div class="log-section">
-                    <h2>📍 Возможные точки</h2>
-                    <ul id="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul>
+                <!-- Центр: холст + статус -->
+                <div class="canvas-wrapper">
+                    <canvas id="canvas2" width="800" height="600"></canvas>
+                    <div class="info" id="status2">…</div>
+                    <div class="result-area" id="resultArea2"></div>
                 </div>
-                <div class="log-section" id="namedPointsSection" style="display:none">
-                    <h2>📌 Реальные точки (A-E)</h2>
-                    <ul id="pointLogList"><li class="empty-log">Пока нет точек</li></ul>
+
+                <!-- Правая колонка: кнопки управления -->
+                <div class="right-buttons">
+                    <button class="undoBtn">↩️ Отменить</button>
+                    <button class="clearBtn">🧹 Очистить всё</button>
+                    <button class="checkBtn">✅ Проверить</button>
+                    <button class="hintBtn" disabled>💡 Подсказка (30)</button>
+                    <div class="hintProgress" style="width:100%; height:4px; background:#eee; border-radius:2px; margin-top:4px;">
+                        <div class="hintBar" style="width:0%; height:100%; background:#f39c12; border-radius:2px;"></div>
+                    </div>
                 </div>
-                <div class="log-section">
-                    <h2>📋 Отрезки</h2>
-                    <ul id="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul>
-                </div>
-                <div class="log-section">
-                    <h2>🧩 Производные отрезки</h2>
-                    <ul id="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul>
-                </div>
-                <div class="log-section">
-                    <h2>🔍 Анализ чертежа</h2>
-                    <ul id="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul>
+
+                <!-- Правая панель: логи и анализ -->
+                <div class="right-panel">
+                    <div class="log-section">
+                        <h2>📍 Возможные точки</h2>
+                        <ul class="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>📌 Реальные точки (A-E)</h2>
+                        <ul class="pointLogList"><li class="empty-log">Пока нет точек</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>📋 Отрезки</h2>
+                        <ul class="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>🧩 Производные отрезки</h2>
+                        <ul class="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul>
+                    </div>
+                    <div class="log-section">
+                        <h2>🔍 Анализ чертежа</h2>
+                        <ul class="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Переключение вкладок и сброс приложения -->
+    <!-- Переключение вкладок -->
     <script>
         (function() {
-            const taskTitle = document.getElementById('taskTitle');
-            const taskSubtitle = document.getElementById('taskSubtitle');
-            const leftButtons = document.getElementById('leftButtons');
-            const namedPointsSection = document.getElementById('namedPointsSection');
             const tabs = document.querySelectorAll('.tab-btn');
-
-            const config = {
-                task1: {
-                    title: 'Нарисуйте два отрезка',
-                    subtitle: 'Первый чертёж: два пересекающихся отрезка',
-                    showPoints: false
-                },
-                task2: {
-                    title: 'Равенство треугольников',
-                    subtitle: 'Отрезки AE и DC пересекаются в точке B,<br>являющейся серединой каждого из них. Докажите, что треугольники ABC и EBD равны.',
-                    showPoints: true
-                }
-            };
+            const contents = document.querySelectorAll('.tab-content');
+            const task1 = document.getElementById('task1');
+            const task2 = document.getElementById('task2');
 
             function switchTab(tabId) {
-                // Активируем кнопку
                 tabs.forEach(btn => btn.classList.remove('active'));
+                contents.forEach(div => div.classList.remove('active'));
                 document.querySelector('[data-tab="' + tabId + '"]').classList.add('active');
+                document.getElementById(tabId).classList.add('active');
 
-                // Обновляем заголовки и видимость блоков
-                const cfg = config[tabId];
-                taskTitle.innerHTML = cfg.title;
-                taskSubtitle.innerHTML = cfg.subtitle;
-                leftButtons.style.display = cfg.showPoints ? 'flex' : 'none';
-                namedPointsSection.style.display = cfg.showPoints ? 'block' : 'none';
-
-                // Вызываем глобальный сброс приложения (определён в main.js)
-                if (window.resetApp) window.resetApp(tabId);
+                // Вызываем глобальную функцию сброса, если она существует
+                if (window.resetApp) {
+                    window.resetApp(tabId);
+                }
             }
 
             tabs.forEach(btn => {
                 btn.addEventListener('click', () => switchTab(btn.dataset.tab));
             });
-
-            // Устанавливаем начальное состояние
-            switchTab('task1');
         })();
     </script>
 
+    <!-- Основной скрипт приложения (модуль) -->
     <script type="module" src="src/scripts/main.js"></script>
 </body>
 </html>

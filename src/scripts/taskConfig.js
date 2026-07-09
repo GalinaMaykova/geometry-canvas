@@ -1,19 +1,13 @@
 /**
  * Конфигурация задач.
- * Каждая задача содержит:
- * - id: идентификатор (task1, task2)
- * - check: функция проверки чертежа, принимает segments и possiblePoints, возвращает { result, analysis }
- * - hint: функция подсказки, принимает segments, возвращает { result, analysis }
+ * Каждая задача содержит функции check и hint, принимающие segments.
  */
-import { segments as getSegments, possiblePoints as getPossiblePoints } from './segments.js?no-cache'; // маленький хак, чтобы не было конфликтов с именами
-
 export const tasks = {
     task1: {
         check(segments) {
             const count = segments.length;
             const analysis = [];
             let result = '';
-
             if (count < 2) {
                 result = 'Нарисуйте два отрезка.';
                 analysis.push('❌ Недостаточно отрезков (нужно 2).');
@@ -41,19 +35,12 @@ export const tasks = {
             }
             return { result, analysis };
         },
-
         hint(segments) {
             const count = segments.length;
             if (count === 0) {
-                return {
-                    result: 'Нарисуйте первый отрезок, кликнув по холсту дважды.',
-                    analysis: ['ℹ️ Начните с первого отрезка.']
-                };
+                return { result: 'Нарисуйте первый отрезок, кликнув по холсту дважды.', analysis: ['ℹ️ Начните с первого отрезка.'] };
             } else if (count === 1) {
-                return {
-                    result: 'Нарисуйте второй отрезок.',
-                    analysis: ['ℹ️ Добавьте ещё один отрезок.']
-                };
+                return { result: 'Нарисуйте второй отрезок.', analysis: ['ℹ️ Добавьте ещё один отрезок.'] };
             } else if (count === 2) {
                 const [s1, s2] = segments;
                 const intersect = (function() {
@@ -66,29 +53,17 @@ export const tasks = {
                     return t >= 0 && t <= 1 && u >= 0 && u <= 1;
                 })();
                 if (!intersect) {
-                    return {
-                        result: 'Отрезки не пересекаются. Попробуйте расположить их крест-накрест.',
-                        analysis: ['❌ Два отрезка не пересекаются.']
-                    };
+                    return { result: 'Отрезки не пересекаются. Попробуйте расположить их крест-накрест.', analysis: ['❌ Два отрезка не пересекаются.'] };
                 } else {
-                    return {
-                        result: 'Отлично! Отрезки пересекаются. Задача решена!',
-                        analysis: ['✅ Два отрезка пересекаются. Можно переходить к следующей задаче.']
-                    };
+                    return { result: 'Отлично! Отрезки пересекаются. Задача решена!', analysis: ['✅ Два отрезка пересекаются.'] };
                 }
             } else {
-                return {
-                    result: 'Оставьте только два отрезка.',
-                    analysis: ['⚠️ Слишком много отрезков.']
-                };
+                return { result: 'Оставьте только два отрезка.', analysis: ['⚠️ Слишком много отрезков.'] };
             }
         }
     },
-
+    // Для task2 функции определены в main.js (performAnalysis, getHintMessage) для совместимости
     task2: {
-        // Для task2 используются те же функции, что и раньше: performAnalysis и getHintMessage из main.js
-        // Но мы разместим их в отдельных модулях или прямо здесь. Оставим как ссылки, чтобы main.js вызывал свои.
-        // Для удобства просто продублируем старые функции в этом модуле.
-        // (В реальном коде лучше вынести в отдельные файлы, но пока так)
+        // Заглушка, реальная логика в main.js
     }
 };
