@@ -87,8 +87,12 @@ export function removeLastSegmentLog() {
 
 export function updateDerivedSegmentLog(derivedSegments) {
     if (!derivedSegmentLog) {
-        console.warn('Элемент derivedSegmentLog не найден в DOM. Добавь <ul id="derivedSegmentLog"></ul> в HTML.');
         return;
+    }
+    // Защита: если передали не массив – превращаем в пустой массив
+    if (!Array.isArray(derivedSegments)) {
+        console.warn('updateDerivedSegmentLog: передан не массив, заменён на []', derivedSegments);
+        derivedSegments = [];
     }
     derivedSegmentLog.innerHTML = '';
     if (derivedSegments.length === 0) {
