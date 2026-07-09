@@ -3,22 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Равенство треугольников</title>
+    <title>Геометрический конструктор</title>
     <link rel="stylesheet" href="src/styles/main.css">
 </head>
 <body>
     <div class="container">
+        <!-- Заголовок -->
         <div class="header">
-            <h1 class="task-title">
-                Отрезки AE и DC пересекаются в точке B,<br>
-                являющейся серединой каждого из них.
-            </h1>
-            <h2 class="task-subtitle">Докажите, что треугольники ABC и EBD равны.</h2>
+            <h1 class="task-title" id="taskTitle">Нарисуйте два отрезка</h1>
+            <h2 class="task-subtitle" id="taskSubtitle">Первый чертёж: два пересекающихся отрезка</h2>
         </div>
 
+        <!-- Вкладки -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="task1">✏️ Отрезки</button>
+            <button class="tab-btn" data-tab="task2">📐 Треугольники</button>
+        </div>
+
+        <!-- Основная рабочая область (единая для обеих задач) -->
         <div class="workspace">
-            <!-- Левая колонка: кнопки A-E -->
-            <div class="left-buttons">
+            <!-- Левая колонка: кнопки A-E (показываются только для task2) -->
+            <div class="left-buttons" id="leftButtons" style="display:none">
                 <button class="point-btn" data-label="A">A</button>
                 <button class="point-btn" data-label="B">B</button>
                 <button class="point-btn" data-label="C">C</button>
@@ -48,37 +53,75 @@
             <div class="right-panel">
                 <div class="log-section">
                     <h2>📍 Возможные точки</h2>
-                    <ul id="possiblePointLog">
-                        <li class="empty-log">Пока нет возможных точек</li>
-                    </ul>
+                    <ul id="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul>
+                </div>
+                <div class="log-section" id="namedPointsSection" style="display:none">
+                    <h2>📌 Реальные точки (A-E)</h2>
+                    <ul id="pointLogList"><li class="empty-log">Пока нет точек</li></ul>
                 </div>
                 <div class="log-section">
-                    <h2>📌 Реальные точки (A-E)</h2>
-                    <ul id="pointLogList">
-                        <li class="empty-log">Пока нет точек</li>
-                    </ul>
-                </div>
-               <div class="log-section">
                     <h2>📋 Отрезки</h2>
-                    <ul id="segmentLogList">
-                        <li class="empty-log">Пока нет отрезков</li>
-                </ul>
+                    <ul id="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul>
                 </div>
                 <div class="log-section">
                     <h2>🧩 Производные отрезки</h2>
-                    <ul id="derivedSegmentLog">
-                        <li class="empty-log">Пока нет производных отрезков</li>
-                    </ul>
+                    <ul id="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul>
                 </div>
                 <div class="log-section">
                     <h2>🔍 Анализ чертежа</h2>
-                    <ul id="analysisLog">
-                        <li class="empty-log">Нажми «Проверить»</li>
-                    </ul>
+                    <ul id="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Переключение вкладок и сброс приложения -->
+    <script>
+        (function() {
+            const taskTitle = document.getElementById('taskTitle');
+            const taskSubtitle = document.getElementById('taskSubtitle');
+            const leftButtons = document.getElementById('leftButtons');
+            const namedPointsSection = document.getElementById('namedPointsSection');
+            const tabs = document.querySelectorAll('.tab-btn');
+
+            const config = {
+                task1: {
+                    title: 'Нарисуйте два отрезка',
+                    subtitle: 'Первый чертёж: два пересекающихся отрезка',
+                    showPoints: false
+                },
+                task2: {
+                    title: 'Равенство треугольников',
+                    subtitle: 'Отрезки AE и DC пересекаются в точке B,<br>являющейся серединой каждого из них. Докажите, что треугольники ABC и EBD равны.',
+                    showPoints: true
+                }
+            };
+
+            function switchTab(tabId) {
+                // Активируем кнопку
+                tabs.forEach(btn => btn.classList.remove('active'));
+                document.querySelector('[data-tab="' + tabId + '"]').classList.add('active');
+
+                // Обновляем заголовки и видимость блоков
+                const cfg = config[tabId];
+                taskTitle.innerHTML = cfg.title;
+                taskSubtitle.innerHTML = cfg.subtitle;
+                leftButtons.style.display = cfg.showPoints ? 'flex' : 'none';
+                namedPointsSection.style.display = cfg.showPoints ? 'block' : 'none';
+
+                // Вызываем глобальный сброс приложения (определён в main.js)
+                if (window.resetApp) window.resetApp(tabId);
+            }
+
+            tabs.forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+
+            // Устанавливаем начальное состояние
+            switchTab('task1');
+        })();
+    </script>
+
     <script type="module" src="src/scripts/main.js"></script>
 </body>
 </html>
