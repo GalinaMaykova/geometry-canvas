@@ -86,10 +86,7 @@ export function removeLastSegmentLog() {
 }
 
 export function updateDerivedSegmentLog(derivedSegments) {
-    if (!derivedSegmentLog) {
-        return;
-    }
-    // Защита: если передали не массив – превращаем в пустой массив
+    if (!derivedSegmentLog) return;
     if (!Array.isArray(derivedSegments)) {
         console.warn('updateDerivedSegmentLog: передан не массив, заменён на []', derivedSegments);
         derivedSegments = [];
