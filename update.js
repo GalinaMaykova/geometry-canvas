@@ -278,7 +278,7 @@ export function drawAllSegments() {
     ctx.restore();
 }`,
 
-    // ===== ui.js (полный, с функциями для точек) =====
+    // ===== ui.js (полный, без сокращений) =====
     'src/scripts/ui.js':
 `export let statusEl, resultArea, possiblePointLog, pointLogList, segmentLogList, derivedSegmentLog, analysisLog;
 export let pointBtns, clearBtn, undoBtn, checkBtn, hintBtn, hintBar;
@@ -460,7 +460,7 @@ export function populatePointButtons(letters) {
 }
 `,
 
-    // ===== taskConfig.js (исправленный) =====
+    // ===== taskConfig.js =====
     'src/scripts/taskConfig.js':
 `export const lessons = {
     'lesson1-1': {
@@ -483,13 +483,10 @@ export function populatePointButtons(letters) {
 
 function mergeSegments(segments) {
     if (segments.length === 0) return [];
-    const groups = [];
-    const used = new Array(segments.length).fill(false);
+    const groups = []; const used = new Array(segments.length).fill(false);
     for (let i = 0; i < segments.length; i++) {
         if (used[i]) continue;
-        const seg = segments[i];
-        const group = [seg];
-        used[i] = true;
+        const seg = segments[i]; const group = [seg]; used[i] = true;
         const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
         for (let j = i + 1; j < segments.length; j++) {
             if (used[j]) continue;
@@ -497,58 +494,31 @@ function mergeSegments(segments) {
             const otherAngle = Math.atan2(other.y2 - other.y1, other.x2 - other.x1);
             if (Math.abs(angle - otherAngle) < 0.001 || Math.abs(angle - otherAngle + Math.PI) < 0.001 || Math.abs(angle - otherAngle - Math.PI) < 0.001) {
                 const dist = distancePointToLine(seg.x1, seg.y1, other.x1, other.y1, other.x2, other.y2);
-                if (dist < 2) {
-                    group.push(other);
-                    used[j] = true;
-                }
+                if (dist < 2) { group.push(other); used[j] = true; }
             }
         }
         groups.push(group);
     }
-
     const merged = [];
     for (const group of groups) {
-        if (group.length === 1) {
-            merged.push({ ...group[0] });
-            continue;
-        }
+        if (group.length === 1) { merged.push({ ...group[0] }); continue; }
         let points = [];
-        for (const seg of group) {
-            points.push({ x: seg.x1, y: seg.y1 });
-            points.push({ x: seg.x2, y: seg.y2 });
-        }
-        const dx = group[0].x2 - group[0].x1;
-        const dy = group[0].y2 - group[0].y1;
-        const len = Math.sqrt(dx*dx + dy*dy) || 1;
-        const ux = dx / len;
-        const uy = dy / len;
-        points.sort((a, b) => {
-            const projA = a.x * ux + a.y * uy;
-            const projB = b.x * ux + b.y * uy;
-            return projA - projB;
-        });
+        for (const seg of group) { points.push({ x: seg.x1, y: seg.y1 }); points.push({ x: seg.x2, y: seg.y2 }); }
+        const dx = group[0].x2 - group[0].x1; const dy = group[0].y2 - group[0].y1;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1; const ux = dx / len; const uy = dy / len;
+        points.sort((a, b) => { const projA = a.x * ux + a.y * uy; const projB = b.x * ux + b.y * uy; return projA - projB; });
         const filtered = [points[0]];
         for (let i = 1; i < points.length; i++) {
             const last = filtered[filtered.length - 1];
-            if (Math.hypot(points[i].x - last.x, points[i].y - last.y) > 2) {
-                filtered.push(points[i]);
-            }
+            if (Math.hypot(points[i].x - last.x, points[i].y - last.y) > 2) filtered.push(points[i]);
         }
-        if (filtered.length >= 2) {
-            merged.push({
-                x1: filtered[0].x, y1: filtered[0].y,
-                x2: filtered[filtered.length - 1].x, y2: filtered[filtered.length - 1].y
-            });
-        } else {
-            merged.push({ ...group[0] });
-        }
+        if (filtered.length >= 2) merged.push({ x1: filtered[0].x, y1: filtered[0].y, x2: filtered[filtered.length - 1].x, y2: filtered[filtered.length - 1].y });
+        else merged.push({ ...group[0] });
     }
     return merged;
 }
-
 function distancePointToLine(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
+    const dx = x2 - x1; const dy = y2 - y1;
     const len = Math.sqrt(dx*dx + dy*dy);
     if (len === 0) return Math.hypot(px - x1, py - y1);
     return Math.abs((py - y1)*dx - (px - x1)*dy) / len;
@@ -559,13 +529,7 @@ export const tasks = {
         letters: ['A', 'B', 'C', 'D'],
         check(segments, namedPoints) {
             const merged = mergeSegments(segments);
-            if (merged.length !== 2) {
-                return {
-                    result: 'Должно получиться ровно два отрезка.',
-                    analysis: ['❌ После объединения отрезков на одной прямой должно остаться два отрезка. Сейчас их ' + merged.length + '.']
-                };
-            }
-
+            if (merged.length !== 2) return { result: 'Должно получиться ровно два отрезка.', analysis: ['❌ После объединения осталось ' + merged.length + ' отрезков.'] };
             const [s1, s2] = merged;
             const intersect = (function() {
                 const denom = (s1.x1 - s1.x2)*(s2.y1 - s2.y2) - (s1.y1 - s1.y2)*(s2.x1 - s2.x2);
@@ -574,31 +538,16 @@ export const tasks = {
                 const u = -((s1.x1 - s1.x2)*(s1.y1 - s2.y1) - (s1.y1 - s1.y2)*(s1.x1 - s2.x1)) / denom;
                 return t >= 0 && t <= 1 && u >= 0 && u <= 1;
             })();
-
-            if (!intersect) {
-                return { result: 'Отрезки не пересекаются.', analysis: ['❌ Отрезки должны пересекаться.'] };
-            }
-
-            if (!namedPoints || namedPoints.length !== 4) {
-                return { result: 'Расставьте точки A, B, C, D.', analysis: ['❌ Должно быть 4 именованные точки.'] };
-            }
+            if (!intersect) return { result: 'Отрезки не пересекаются.', analysis: ['❌ Отрезки должны пересекаться.'] };
+            if (!namedPoints || namedPoints.length !== 4) return { result: 'Расставьте точки A, B, C, D.', analysis: ['❌ Должно быть 4 именованные точки.'] };
             const labels = namedPoints.map(p => p.label).sort().join(',');
-            if (labels !== 'A,B,C,D') {
-                return { result: 'Используйте точки A, B, C, D.', analysis: ['❌ Ожидаются точки A, B, C, D.'] };
-            }
-
-            const getLabel = (x, y) => {
-                for (let np of namedPoints) if (Math.abs(np.x - x) < 1 && Math.abs(np.y - y) < 1) return np.label;
-                return null;
-            };
+            if (labels !== 'A,B,C,D') return { result: 'Используйте точки A, B, C, D.', analysis: ['❌ Ожидаются точки A, B, C, D.'] };
+            const getLabel = (x, y) => { for (let np of namedPoints) if (Math.abs(np.x - x) < 1 && Math.abs(np.y - y) < 1) return np.label; return null; };
             const ends1 = [getLabel(s1.x1, s1.y1), getLabel(s1.x2, s1.y2)].sort().join(',');
             const ends2 = [getLabel(s2.x1, s2.y1), getLabel(s2.x2, s2.y2)].sort().join(',');
             const validPairs = ['A,B', 'C,D'];
-            if (!validPairs.includes(ends1) || !validPairs.includes(ends2) || ends1 === ends2) {
-                return { result: 'Точки A,B должны быть на одном отрезке, C,D – на другом.', analysis: ['❌ Неправильное распределение точек.'] };
-            }
-
-            return { result: '✅ Задача выполнена! Отрезки AB и CD пересекаются.', analysis: ['✅ Два пересекающихся отрезка с правильными точками.'] };
+            if (!validPairs.includes(ends1) || !validPairs.includes(ends2) || ends1 === ends2) return { result: 'Точки A,B должны быть на одном отрезке, C,D – на другом.', analysis: ['❌ Неправильное распределение точек.'] };
+            return { result: '✅ Задача выполнена!', analysis: ['✅ Два пересекающихся отрезка с правильными точками.'] };
         },
         hint(segments) {
             const merged = mergeSegments(segments);
@@ -614,7 +563,7 @@ export const tasks = {
                     return t >= 0 && t <= 1 && u >= 0 && u <= 1;
                 })();
                 if (!intersect) return { result: 'Отрезки не пересекаются.', analysis: ['❌ Два отрезка не пересекаются.'] };
-                return { result: 'Отлично! Теперь нажмите «Точки» и расставьте A, B, C, D по концам отрезков.', analysis: ['✅ Осталось только обозначить вершины.'] };
+                return { result: 'Отлично! Теперь нажмите «Точки» и расставьте A, B, C, D.', analysis: ['✅ Осталось обозначить вершины.'] };
             }
             return { result: 'Оставьте только два отрезка.', analysis: ['⚠️ Слишком много отрезков.'] };
         }
@@ -625,31 +574,27 @@ export const tasks = {
             if (segments.length !== 3) return { result: 'Должно быть ровно три отрезка.', analysis: ['❌ Количество отрезков не равно трём.'] };
             const points = new Map();
             for (let seg of segments) {
-                const key1 = seg.x1 + ',' + seg.y1;
-                const key2 = seg.x2 + ',' + seg.y2;
-                points.set(key1, (points.get(key1) || 0) + 1);
-                points.set(key2, (points.get(key2) || 0) + 1);
+                const key1 = seg.x1 + ',' + seg.y1; const key2 = seg.x2 + ',' + seg.y2;
+                points.set(key1, (points.get(key1) || 0) + 1); points.set(key2, (points.get(key2) || 0) + 1);
             }
             let isValid = true;
             for (let count of points.values()) if (count !== 2) { isValid = false; break; }
             if (!isValid) return { result: 'Отрезки не образуют треугольник.', analysis: ['❌ Концы отрезков должны попарно совпадать.'] };
             if (!namedPoints || namedPoints.length !== 3) return { result: 'Расставьте точки A, B, C.', analysis: ['❌ Нужно поставить три именованные точки.'] };
-            const labels = namedPoints.map(p => p.label).sort();
-            if (labels.join(',') !== 'A,B,C') return { result: 'Используйте точки A, B, C.', analysis: ['❌ Ожидаются точки A, B, C.'] };
+            const labels = namedPoints.map(p => p.label).sort().join(',');
+            if (labels !== 'A,B,C') return { result: 'Используйте точки A, B, C.', analysis: ['❌ Ожидаются точки A, B, C.'] };
             return { result: '✅ Треугольник ABC построен!', analysis: ['✅ Треугольник с вершинами A, B, C.'] };
         },
         hint(segments) {
-            if (segments.length < 3) return { result: 'Постройте три отрезка, соединяющие три точки.', analysis: ['ℹ️ Нужно три отрезка.'] };
+            if (segments.length < 3) return { result: 'Постройте три отрезка.', analysis: ['ℹ️ Нужно три отрезка.'] };
             if (segments.length > 3) return { result: 'Оставьте только три отрезка.', analysis: ['⚠️ Слишком много отрезков.'] };
             const points = new Map();
             for (let seg of segments) {
-                const key1 = seg.x1 + ',' + seg.y1;
-                const key2 = seg.x2 + ',' + seg.y2;
-                points.set(key1, (points.get(key1) || 0) + 1);
-                points.set(key2, (points.get(key2) || 0) + 1);
+                const key1 = seg.x1 + ',' + seg.y1; const key2 = seg.x2 + ',' + seg.y2;
+                points.set(key1, (points.get(key1) || 0) + 1); points.set(key2, (points.get(key2) || 0) + 1);
             }
             if (points.size !== 3) return { result: 'Три отрезка должны иметь общие концы.', analysis: ['ℹ️ Должно быть три уникальные точки.'] };
-            return { result: 'Отлично! Теперь нажмите «Точки» и расставьте A, B, C по вершинам.', analysis: ['✅ Осталось только обозначить вершины.'] };
+            return { result: 'Отлично! Теперь нажмите «Точки» и расставьте A, B, C.', analysis: ['✅ Осталось обозначить вершины.'] };
         }
     }
 };`,
@@ -676,7 +621,7 @@ export function loadAppState() {
     catch (e) { console.error('Ошибка загрузки состояния холстов:', e); return {}; }
 }`,
 
-    // ===== drawing.js (полный, без изменений) =====
+    // ===== drawing.js (полный, с финальными правками) =====
     'src/scripts/drawing.js':
 `import { canvas, ctx, W, H, getMousePos } from './canvas.js';
 import { drawGrid, snapToGrid, isInsideCanvas } from './grid.js';
@@ -702,6 +647,7 @@ import {
 
 console.log('🔧 drawing.js загружен');
 
+// ===================== Состояние редактора =====================
 let startPoint = null;
 let endPoint = null;
 let actionHistory = [];
@@ -717,7 +663,7 @@ let dragOriginalSegmentStates = [];
 let mouseDownPos = null;
 let isDragging = false;
 
-let currentTool = 'pointer';
+let currentTool = 'line';   // по умолчанию линия
 let allowedLetters = [];
 
 let eraserHoverTarget = null;
@@ -792,402 +738,139 @@ function findClosestNamedPoint(px, py, maxDist = 15) {
     }
     return best;
 }
-function pushHistory(action) {
-    actionHistory.push(action);
-    if (actionHistory.length > MAX_HISTORY) actionHistory.shift();
-}
-function snapshotSegments() {
-    return segments.map(seg => ({ ...seg }));
-}
+function pushHistory(action) { actionHistory.push(action); if (actionHistory.length > MAX_HISTORY) actionHistory.shift(); }
+function snapshotSegments() { return segments.map(seg => ({ ...seg })); }
 
 function render() {
     if (!ctx) return;
     ctx.clearRect(0, 0, W, H);
-    drawGrid();
-    drawAllSegments();
-    drawPossiblePoints();
-    drawNamedPoints();
-    drawTempSegment();
-    drawMarkers();
+    drawGrid(); drawAllSegments(); drawPossiblePoints(); drawNamedPoints();
+    drawTempSegment(); drawMarkers();
     if (currentTool === 'eraser' && eraserHoverTarget) {
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 3;
-        if (eraserHoverTarget.type === 'segment') {
-            const seg = eraserHoverTarget.ref;
-            ctx.beginPath();
-            ctx.moveTo(seg.x1, seg.y1);
-            ctx.lineTo(seg.x2, seg.y2);
-            ctx.stroke();
-        } else if (eraserHoverTarget.type === 'namedPoint') {
-            const np = eraserHoverTarget.ref;
-            ctx.beginPath();
-            ctx.arc(np.x, np.y, 6, 0, 2 * Math.PI);
-            ctx.stroke();
-        }
+        ctx.save(); ctx.strokeStyle = 'red'; ctx.lineWidth = 3;
+        if (eraserHoverTarget.type === 'segment') { const seg = eraserHoverTarget.ref; ctx.beginPath(); ctx.moveTo(seg.x1, seg.y1); ctx.lineTo(seg.x2, seg.y2); ctx.stroke(); }
+        else if (eraserHoverTarget.type === 'namedPoint') { const np = eraserHoverTarget.ref; ctx.beginPath(); ctx.arc(np.x, np.y, 6, 0, 2*Math.PI); ctx.stroke(); }
         ctx.restore();
     }
 }
-function drawTempSegment() {
-    if (startPoint && endPoint) {
-        ctx.save();
-        ctx.setLineDash([4,4]); ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(startPoint.x, startPoint.y); ctx.lineTo(endPoint.x, endPoint.y); ctx.stroke();
-        ctx.restore();
-    }
-}
-function drawMarkers() {
-    ctx.save();
-    ctx.fillStyle = '#e74c3c';
-    if (startPoint) { ctx.beginPath(); ctx.arc(startPoint.x, startPoint.y, 5, 0, 2*Math.PI); ctx.fill(); }
-    if (endPoint) { ctx.beginPath(); ctx.arc(endPoint.x, endPoint.y, 5, 0, 2*Math.PI); ctx.fill(); }
-    ctx.restore();
-}
-function refreshLogs() {
-    updatePossiblePointLog(possiblePoints);
-    updateSegmentLog(segments, getPointFullName);
-    updateDerivedSegmentLog(getDerivedSegments());
-}
+function drawTempSegment() { if (startPoint && endPoint) { ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='#e67e22'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(startPoint.x, startPoint.y); ctx.lineTo(endPoint.x, endPoint.y); ctx.stroke(); ctx.restore(); } }
+function drawMarkers() { ctx.save(); ctx.fillStyle='#e74c3c'; if (startPoint) { ctx.beginPath(); ctx.arc(startPoint.x, startPoint.y, 5, 0, 2*Math.PI); ctx.fill(); } if (endPoint) { ctx.beginPath(); ctx.arc(endPoint.x, endPoint.y, 5, 0, 2*Math.PI); ctx.fill(); } ctx.restore(); }
+function refreshLogs() { updatePossiblePointLog(possiblePoints); updateSegmentLog(segments, getPointFullName); updateDerivedSegmentLog(getDerivedSegments()); }
 
+// ===================== Обработчики мыши =====================
 function onMouseDown(e) {
-    const pos = getMousePos(e);
-    const px = pos.x, py = pos.y;
-    mouseDownPos = { x: px, y: py };
-    isDragging = false;
+    const pos = getMousePos(e); const px = pos.x, py = pos.y;
+    mouseDownPos = { x: px, y: py }; isDragging = false;
 
     if (currentTool === 'eraser') {
-        const seg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS);
-        if (seg) { deleteSegment(seg); e.preventDefault(); return; }
-        const np = findClosestNamedPoint(px, py, 15);
+        const np = findClosestNamedPoint(px, py, 15);   // приоритет точки
         if (np) { deleteNamedPoint(np); e.preventDefault(); return; }
-        dragMode = 'none';
-        return;
+        const seg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS);
+        if (seg) { deleteSegmentWithPoints(seg); e.preventDefault(); return; }
+        dragMode = 'none'; return;
     }
-
     if (currentTool === 'point') {
         const closestPoint = findClosestPossiblePoint(px, py, POINT_GRAB_RADIUS);
         if (closestPoint && activeLabel) {
             addNamedPoint(activeLabel, closestPoint.x, closestPoint.y);
-            disablePointBtn(activeLabel);
-            setActivePointBtn(null);
-            activeLabel = null;
-            updatePossiblePoints(segments);
-            render();
-            refreshLogs();
+            disablePointBtn(activeLabel); setActivePointBtn(null); activeLabel = null;
+            updatePossiblePoints(segments); render(); refreshLogs();
             if (typeof onDrawingChanged === 'function') onDrawingChanged();
             setStatus('Точка ' + activeLabel + ' поставлена в ' + closestPoint.id + ' ✅');
-            e.preventDefault();
-            return;
+            e.preventDefault(); return;
         }
-        dragMode = 'none';
-        return;
+        dragMode = 'none'; return;
     }
-
-    if (currentTool === 'line') {
-        dragMode = 'none';
-        return;
-    }
+    if (currentTool === 'line') { dragMode = 'none'; return; }
 
     if (currentTool === 'pointer') {
         const closestPoint = findClosestPossiblePoint(px, py, POINT_GRAB_RADIUS);
         if (closestPoint) {
-            dragMode = 'point';
-            dragPoint = closestPoint;
-            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
+            dragMode = 'point'; dragPoint = closestPoint; dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
             dragOriginalSegmentStates = [];
             for (let seg of segments) {
                 if ((Math.abs(seg.x1 - closestPoint.x) < 1 && Math.abs(seg.y1 - closestPoint.y) < 1) ||
-                    (Math.abs(seg.x2 - closestPoint.x) < 1 && Math.abs(seg.y2 - closestPoint.y) < 1)) {
-                    dragOriginalSegmentStates.push({
-                        seg: seg,
-                        x1: seg.x1, y1: seg.y1,
-                        x2: seg.x2, y2: seg.y2
-                    });
-                }
+                    (Math.abs(seg.x2 - closestPoint.x) < 1 && Math.abs(seg.y2 - closestPoint.y) < 1))
+                    dragOriginalSegmentStates.push({ seg, x1: seg.x1, y1: seg.y1, x2: seg.x2, y2: seg.y2 });
             }
-            e.preventDefault();
-            return;
+            e.preventDefault(); return;
         }
-
         const closestSeg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS);
-        if (closestSeg) {
-            dragMode = 'segment';
-            dragSegment = closestSeg;
-            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
-            originalSegmentCoords = { x1: closestSeg.x1, y1: closestSeg.y1, x2: closestSeg.x2, y2: closestSeg.y2 };
-            e.preventDefault();
-            return;
-        }
-
+        if (closestSeg) { dragMode = 'segment'; dragSegment = closestSeg; dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) }; originalSegmentCoords = { x1: closestSeg.x1, y1: closestSeg.y1, x2: closestSeg.x2, y2: closestSeg.y2 }; e.preventDefault(); return; }
         const np = findClosestNamedPoint(px, py, 15);
-        if (np) {
-            dragMode = 'namedPoint';
-            dragPoint = np;
-            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
-            originalSegmentCoords = { x: np.x, y: np.y };
-            e.preventDefault();
-            return;
-        }
-
-        dragMode = 'none';
-        return;
+        if (np) { dragMode = 'namedPoint'; dragPoint = np; dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) }; originalSegmentCoords = { x: np.x, y: np.y }; e.preventDefault(); return; }
+        dragMode = 'none'; return;
     }
-
     dragMode = 'none';
 }
 function onMouseMove(e) {
-    const pos = getMousePos(e);
-    const px = pos.x, py = pos.y;
+    const pos = getMousePos(e); const px = pos.x, py = pos.y;
+    if (currentTool === 'eraser') { eraserHoverTarget = null; const np = findClosestNamedPoint(px, py, 15); if (np) eraserHoverTarget = { type: 'namedPoint', ref: np }; else { const seg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS); if (seg) eraserHoverTarget = { type: 'segment', ref: seg }; } render(); return; }
+    else eraserHoverTarget = null;
 
-    if (currentTool === 'eraser') {
-        eraserHoverTarget = null;
-        const seg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS);
-        if (seg) {
-            eraserHoverTarget = { type: 'segment', ref: seg };
-        } else {
-            const np = findClosestNamedPoint(px, py, 15);
-            if (np) eraserHoverTarget = { type: 'namedPoint', ref: np };
-        }
-        render();
-        return;
-    } else {
-        eraserHoverTarget = null;
-    }
-
-    if (mouseDownPos && !isDragging) {
-        const dx = px - mouseDownPos.x, dy = py - mouseDownPos.y;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDragging = true;
-    }
+    if (mouseDownPos && !isDragging) { const dx = px - mouseDownPos.x, dy = py - mouseDownPos.y; if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDragging = true; }
 
     if (dragMode === 'point' && dragPoint) {
         const snapX = snapToGrid(px), snapY = snapToGrid(py);
-        for (let state of dragOriginalSegmentStates) {
-            const seg = state.seg;
-            if (Math.abs(seg.x1 - dragPoint.x) < 1 && Math.abs(seg.y1 - dragPoint.y) < 1) { seg.x1 = snapX; seg.y1 = snapY; }
-            if (Math.abs(seg.x2 - dragPoint.x) < 1 && Math.abs(seg.y2 - dragPoint.y) < 1) { seg.x2 = snapX; seg.y2 = snapY; }
-        }
-        for (let np of namedPoints) {
-            if (Math.abs(np.x - dragPoint.x) < 1 && Math.abs(np.y - dragPoint.y) < 1) {
-                np.x = snapX;
-                np.y = snapY;
-            }
-        }
-        dragPoint.x = snapX;
-        dragPoint.y = snapY;
-        updatePossiblePoints(segments);
-        render();
-        refreshLogs();
-    } else if (dragMode === 'segment' && dragSegment) {
-        const snapX = snapToGrid(px), snapY = snapToGrid(py);
-        const dx = snapX - dragStartPos.x, dy = snapY - dragStartPos.y;
-        dragSegment.x1 = originalSegmentCoords.x1 + dx;
-        dragSegment.y1 = originalSegmentCoords.y1 + dy;
-        dragSegment.x2 = originalSegmentCoords.x2 + dx;
-        dragSegment.y2 = originalSegmentCoords.y2 + dy;
-        updatePossiblePoints(segments);
-        render();
-        refreshLogs();
-    } else if (dragMode === 'namedPoint' && dragPoint) {
-        const snapX = snapToGrid(px), snapY = snapToGrid(py);
-        dragPoint.x = snapX;
-        dragPoint.y = snapY;
-        render();
-        refreshLogs();
-    }
+        for (let state of dragOriginalSegmentStates) { const seg = state.seg; if (Math.abs(seg.x1 - dragPoint.x) < 1 && Math.abs(seg.y1 - dragPoint.y) < 1) { seg.x1 = snapX; seg.y1 = snapY; } if (Math.abs(seg.x2 - dragPoint.x) < 1 && Math.abs(seg.y2 - dragPoint.y) < 1) { seg.x2 = snapX; seg.y2 = snapY; } }
+        for (let np of namedPoints) { if (Math.abs(np.x - dragPoint.x) < 1 && Math.abs(np.y - dragPoint.y) < 1) { np.x = snapX; np.y = snapY; } }
+        dragPoint.x = snapX; dragPoint.y = snapY; updatePossiblePoints(segments); render(); refreshLogs();
+    } else if (dragMode === 'segment' && dragSegment) { const snapX = snapToGrid(px), snapY = snapToGrid(py); const dx = snapX - dragStartPos.x, dy = snapY - dragStartPos.y; dragSegment.x1 = originalSegmentCoords.x1 + dx; dragSegment.y1 = originalSegmentCoords.y1 + dy; dragSegment.x2 = originalSegmentCoords.x2 + dx; dragSegment.y2 = originalSegmentCoords.y2 + dy; updatePossiblePoints(segments); render(); refreshLogs(); }
+    else if (dragMode === 'namedPoint' && dragPoint) { const snapX = snapToGrid(px), snapY = snapToGrid(py); dragPoint.x = snapX; dragPoint.y = snapY; render(); refreshLogs(); }
 
-    if (startPoint && !endPoint && !isDragging && (currentTool === 'line')) {
-        endPoint = { x: snapToGrid(px), y: snapToGrid(py) };
-        render();
-    }
+    if (startPoint && !endPoint && !isDragging && currentTool === 'line') { endPoint = { x: snapToGrid(px), y: snapToGrid(py) }; render(); }
 }
 function onMouseUp(e) {
-    const pos = getMousePos(e);
-    const px = pos.x, py = pos.y;
-
+    const pos = getMousePos(e); const px = pos.x, py = pos.y;
     if (currentTool === 'eraser') { dragMode = 'none'; return; }
-
     if (isDragging) {
-        if (dragMode === 'point') {
-            let hasDegenerate = false;
-            for (let state of dragOriginalSegmentStates) {
-                const seg = state.seg;
-                if (Math.abs(seg.x1 - seg.x2) < 1 && Math.abs(seg.y1 - seg.y2) < 1) { hasDegenerate = true; break; }
-            }
-            if (hasDegenerate) {
-                for (let state of dragOriginalSegmentStates) {
-                    state.seg.x1 = state.x1; state.seg.y1 = state.y1;
-                    state.seg.x2 = state.x2; state.seg.y2 = state.y2;
-                }
-                updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Нельзя схлопнуть отрезок в точку');
-            } else {
-                pushHistory({ type: 'move', oldSegments: snapshotSegments(), newSegments: snapshotSegments() });
-            }
-        } else if (dragMode === 'segment') {
-            if (Math.abs(dragSegment.x1 - dragSegment.x2) < 1 && Math.abs(dragSegment.y1 - dragSegment.y2) < 1) {
-                dragSegment.x1 = originalSegmentCoords.x1; dragSegment.y1 = originalSegmentCoords.y1;
-                dragSegment.x2 = originalSegmentCoords.x2; dragSegment.y2 = originalSegmentCoords.y2;
-                updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Нельзя схлопнуть отрезок в точку');
-            } else {
-                pushHistory({ type: 'move', oldSegments: snapshotSegments(), newSegments: snapshotSegments() });
-            }
-        } else if (dragMode === 'namedPoint') {
-            pushHistory({ type: 'moveNamedPoint', label: dragPoint.label, oldX: originalSegmentCoords.x, oldY: originalSegmentCoords.y, newX: dragPoint.x, newY: dragPoint.y });
-        }
-        dragMode = 'none'; dragPoint = null; dragSegment = null;
-        dragStartPos = null; originalSegmentCoords = null; dragOriginalSegmentStates = [];
-        isDragging = false; mouseDownPos = null;
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        render(); refreshLogs();
-        return;
+        if (dragMode === 'point') { let hasDegenerate = false; for (let state of dragOriginalSegmentStates) { const seg = state.seg; if (Math.abs(seg.x1 - seg.x2) < 1 && Math.abs(seg.y1 - seg.y2) < 1) { hasDegenerate = true; break; } } if (hasDegenerate) { for (let state of dragOriginalSegmentStates) { state.seg.x1 = state.x1; state.seg.y1 = state.y1; state.seg.x2 = state.x2; state.seg.y2 = state.y2; } updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Нельзя схлопнуть отрезок в точку'); } else { pushHistory({ type: 'move', oldSegments: snapshotSegments(), newSegments: snapshotSegments() }); } }
+        else if (dragMode === 'segment') { if (Math.abs(dragSegment.x1 - dragSegment.x2) < 1 && Math.abs(dragSegment.y1 - dragSegment.y2) < 1) { dragSegment.x1 = originalSegmentCoords.x1; dragSegment.y1 = originalSegmentCoords.y1; dragSegment.x2 = originalSegmentCoords.x2; dragSegment.y2 = originalSegmentCoords.y2; updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Нельзя схлопнуть отрезок в точку'); } else { pushHistory({ type: 'move', oldSegments: snapshotSegments(), newSegments: snapshotSegments() }); } }
+        else if (dragMode === 'namedPoint') { pushHistory({ type: 'moveNamedPoint', label: dragPoint.label, oldX: originalSegmentCoords.x, oldY: originalSegmentCoords.y, newX: dragPoint.x, newY: dragPoint.y }); }
+        dragMode = 'none'; dragPoint = null; dragSegment = null; dragStartPos = null; originalSegmentCoords = null; dragOriginalSegmentStates = []; isDragging = false; mouseDownPos = null;
+        if (typeof onDrawingChanged === 'function') onDrawingChanged(); render(); refreshLogs(); return;
     }
-
-    if (currentTool === 'line' && dragMode === 'none') { handleCanvasClickAt(px, py); }
-
-    dragMode = 'none'; dragPoint = null; dragSegment = null;
-    dragStartPos = null; originalSegmentCoords = null; dragOriginalSegmentStates = [];
-    isDragging = false; mouseDownPos = null;
+    if (currentTool === 'line' && dragMode === 'none') handleCanvasClickAt(px, py);
+    dragMode = 'none'; dragPoint = null; dragSegment = null; dragStartPos = null; originalSegmentCoords = null; dragOriginalSegmentStates = []; isDragging = false; mouseDownPos = null;
 }
 function handleCanvasClickAt(px, py) {
     if (currentTool !== 'line') return;
     const snapX = snapToGrid(px), snapY = snapToGrid(py);
     if (!isInsideCanvas(snapX, snapY)) { setStatus('Кликни внутри поля'); return; }
-
-    if (!startPoint) {
-        startPoint = { x: snapX, y: snapY }; endPoint = null;
-        setStatus('Теперь кликни, чтобы выбрать конец отрезка ✏️');
-        render();
-    } else {
-        if (startPoint.x === snapX && startPoint.y === snapY) {
-            setStatus('Ты выбрал ту же точку. Начни сначала.');
-            startPoint = null; endPoint = null; render();
-            return;
-        }
-        const finalEnd = { x: snapX, y: snapY };
-        addSegment(startPoint.x, startPoint.y, finalEnd.x, finalEnd.y);
-        pushHistory({ type: 'add', segment: { x1: startPoint.x, y1: startPoint.y, x2: finalEnd.x, y2: finalEnd.y } });
-        startPoint = null; endPoint = null;
-        updatePossiblePoints(segments); render(); refreshLogs();
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        setStatus('Отрезок готов!');
-    }
+    if (!startPoint) { startPoint = { x: snapX, y: snapY }; endPoint = null; setStatus('Теперь кликни, чтобы выбрать конец отрезка ✏️'); render(); }
+    else { if (startPoint.x === snapX && startPoint.y === snapY) { setStatus('Ты выбрал ту же точку. Начни сначала.'); startPoint = null; endPoint = null; render(); return; } const finalEnd = { x: snapX, y: snapY }; addSegment(startPoint.x, startPoint.y, finalEnd.x, finalEnd.y); pushHistory({ type: 'add', segment: { x1: startPoint.x, y1: startPoint.y, x2: finalEnd.x, y2: finalEnd.y } }); startPoint = null; endPoint = null; updatePossiblePoints(segments); render(); refreshLogs(); if (typeof onDrawingChanged === 'function') onDrawingChanged(); setStatus('Отрезок готов!'); }
 }
-function deleteSegment(seg) {
+function deleteSegmentWithPoints(seg) {
+    const toRemove = [];
+    for (let np of namedPoints) { if ((Math.abs(np.x - seg.x1) < 1 && Math.abs(np.y - seg.y1) < 1) || (Math.abs(np.x - seg.x2) < 1 && Math.abs(np.y - seg.y2) < 1)) toRemove.push(np); }
+    for (let np of toRemove) deleteNamedPoint(np);
     pushHistory({ type: 'delete', segment: { ...seg } });
     const index = segments.indexOf(seg);
-    if (index !== -1) {
-        segments.splice(index, 1); updatePossiblePoints(segments); render(); refreshLogs();
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        setStatus('Отрезок удалён');
-    }
+    if (index !== -1) { segments.splice(index, 1); updatePossiblePoints(segments); render(); refreshLogs(); if (typeof onDrawingChanged === 'function') onDrawingChanged(); setStatus('Отрезок удалён'); }
 }
-function deleteNamedPoint(np) {
-    pushHistory({ type: 'deleteNamedPoint', point: { ...np } });
-    const index = namedPoints.indexOf(np);
-    if (index !== -1) {
-        namedPoints.splice(index, 1); enablePointBtn(np.label); render(); refreshLogs();
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        setStatus('Точка ' + np.label + ' удалена');
-    }
-}
+function deleteNamedPoint(np) { pushHistory({ type: 'deleteNamedPoint', point: { ...np } }); const index = namedPoints.indexOf(np); if (index !== -1) { namedPoints.splice(index, 1); enablePointBtn(np.label); render(); refreshLogs(); if (typeof onDrawingChanged === 'function') onDrawingChanged(); setStatus('Точка ' + np.label + ' удалена'); } }
 
 export function setTool(tool) {
     if (tool === currentTool) tool = 'pointer';
-    currentTool = tool;
-    startPoint = null; endPoint = null;
-    eraserHoverTarget = null;
-
-    if (tool === 'pointer') setPointerActive();
-    else if (tool === 'line') setLineActive();
-    else if (tool === 'point') setPointsActive();
-    else if (tool === 'eraser') setEraserActive();
-    else resetTools();
-
+    currentTool = tool; startPoint = null; endPoint = null; eraserHoverTarget = null;
+    if (tool === 'pointer') setPointerActive(); else if (tool === 'line') setLineActive(); else if (tool === 'point') setPointsActive(); else if (tool === 'eraser') setEraserActive(); else resetTools();
     render();
 }
 export function setAllowedLetters(letters) {
-    allowedLetters = letters;
-    populatePointButtons(letters);
-    activeLabel = null;
-    setActivePointBtn(null);
-    resetAllButtons();
-    document.querySelectorAll('.point-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (currentTool !== 'point') return;
-            const label = btn.dataset.label;
-            if (btn.disabled) return;
-            if (btn.classList.contains('active')) {
-                btn.classList.remove('active');
-                setActivePointBtn(null);
-                activeLabel = null;
-                setStatus('Выбор точки отменён');
-            } else {
-                document.querySelectorAll('.point-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                activeLabel = label;
-                setStatus('Выбрана точка ' + label + '. Кликните рядом с возможной точкой.');
-            }
-        });
-    });
+    allowedLetters = letters; populatePointButtons(letters); activeLabel = null; setActivePointBtn(null); resetAllButtons();
+    document.querySelectorAll('.point-btn').forEach(btn => { btn.addEventListener('click', () => { if (currentTool !== 'point') return; const label = btn.dataset.label; if (btn.disabled) return; if (btn.classList.contains('active')) { btn.classList.remove('active'); setActivePointBtn(null); activeLabel = null; setStatus('Выбор точки отменён'); } else { document.querySelectorAll('.point-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); activeLabel = label; setStatus('Выбрана точка ' + label + '. Кликните рядом с возможной точкой.'); } }); });
 }
-export function attachEvents() {
-    if (!canvas) return;
-    canvas.addEventListener('mousedown', onMouseDown);
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseup', onMouseUp);
-}
-export function detachEvents() {
-    if (!canvas) return;
-    canvas.removeEventListener('mousedown', onMouseDown);
-    canvas.removeEventListener('mousemove', onMouseMove);
-    canvas.removeEventListener('mouseup', onMouseUp);
-}
-export function clearDrawing() {
-    clearSegments();
-    clearNamedPoints();
-    clearPossiblePoints();
-    clearSegmentLog();
-    clearNamedPointLog();
-    clearAnalysis();
-    updatePossiblePointLog([]);
-    startPoint = null; endPoint = null;
-    actionHistory = [];
-    activeLabel = null;
-    eraserHoverTarget = null;
-    resetAllButtons(); setActivePointBtn(null);
-    if (typeof onDrawingChanged === 'function') onDrawingChanged();
-    setTool('pointer');
-    render();
-}
-export function undoLastAction() {
-    if (startPoint) { startPoint = null; endPoint = null; setStatus('Сброшено'); render(); return; }
-    if (!actionHistory.length) { setStatus('Нет действий для отмены'); return; }
-    const last = actionHistory.pop();
-    if (last.type === 'add') {
-        const removed = segments.pop();
-        if (removed) { updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Отрезок удалён (отмена)'); }
-    } else if (last.type === 'delete') {
-        segments.push(last.segment);
-        updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Отрезок восстановлен (отмена)');
-    } else if (last.type === 'deleteNamedPoint') {
-        namedPoints.push(last.point);
-        disablePointBtn(last.point.label);
-        render(); refreshLogs(); setStatus('Точка ' + last.point.label + ' восстановлена');
-    } else if (last.type === 'move') {
-        segments.splice(0, segments.length, ...last.oldSegments);
-        updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Перемещение отменено');
-    } else if (last.type === 'moveNamedPoint') {
-        const np = namedPoints.find(p => p.label === last.label);
-        if (np) { np.x = last.oldX; np.y = last.oldY; render(); refreshLogs(); setStatus('Перемещение точки отменено'); }
-    }
-    if (typeof onDrawingChanged === 'function') onDrawingChanged();
-}
+export function attachEvents() { if (!canvas) return; canvas.addEventListener('mousedown', onMouseDown); canvas.addEventListener('mousemove', onMouseMove); canvas.addEventListener('mouseup', onMouseUp); }
+export function detachEvents() { if (!canvas) return; canvas.removeEventListener('mousedown', onMouseDown); canvas.removeEventListener('mousemove', onMouseMove); canvas.removeEventListener('mouseup', onMouseUp); }
+export function clearDrawing() { clearSegments(); clearNamedPoints(); clearPossiblePoints(); clearSegmentLog(); clearNamedPointLog(); clearAnalysis(); updatePossiblePointLog([]); startPoint = null; endPoint = null; actionHistory = []; activeLabel = null; eraserHoverTarget = null; resetAllButtons(); setActivePointBtn(null); if (typeof onDrawingChanged === 'function') onDrawingChanged(); setTool('pointer'); render(); }
+export function undoLastAction() { if (startPoint) { startPoint = null; endPoint = null; setStatus('Сброшено'); render(); return; } if (!actionHistory.length) { setStatus('Нет действий для отмены'); return; } const last = actionHistory.pop(); if (last.type === 'add') { const removed = segments.pop(); if (removed) { updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Отрезок удалён (отмена)'); } } else if (last.type === 'delete') { segments.push(last.segment); updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Отрезок восстановлен (отмена)'); } else if (last.type === 'deleteNamedPoint') { namedPoints.push(last.point); disablePointBtn(last.point.label); render(); refreshLogs(); setStatus('Точка ' + last.point.label + ' восстановлена'); } else if (last.type === 'move') { segments.splice(0, segments.length, ...last.oldSegments); updatePossiblePoints(segments); render(); refreshLogs(); setStatus('Перемещение отменено'); } else if (last.type === 'moveNamedPoint') { const np = namedPoints.find(p => p.label === last.label); if (np) { np.x = last.oldX; np.y = last.oldY; render(); refreshLogs(); setStatus('Перемещение точки отменено'); } } if (typeof onDrawingChanged === 'function') onDrawingChanged(); }
 export function getSegments() { return segments; }
 export let onDrawingChanged = null;
 export function setOnDrawingChanged(callback) { onDrawingChanged = callback; }
 export function redraw() { updatePossiblePoints(segments); render(); refreshLogs(); }
 `,
 
-    // ===== main.js (полный) =====
+    // ===== main.js (полный, исправленный) =====
     'src/scripts/main.js':
 `import { initCanvas, canvas } from './canvas.js';
 import {
@@ -1218,265 +901,88 @@ let appState = loadAppStateFromStorage();
 
 setOnDrawingChanged(() => {
     if (!currentView) return;
-    appState[currentView] = {
-        segments: getSegments().slice(),
-        namedPoints: namedPoints.slice()
-    };
+    appState[currentView] = { segments: getSegments().slice(), namedPoints: namedPoints.slice() };
     saveAppStateToStorage(appState);
 });
 
-// ===================== Навигация =====================
 function navigateTo(section) {
     detachEvents();
-    if (currentView && currentTaskId) {
-        appState[currentView] = {
-            segments: getSegments().slice(),
-            namedPoints: namedPoints.slice()
-        };
-        saveAppStateToStorage(appState);
-    }
-    const oldCanvas = document.querySelector('canvas');
-    if (oldCanvas) oldCanvas.remove();
-
+    if (currentView && currentTaskId) { appState[currentView] = { segments: getSegments().slice(), namedPoints: namedPoints.slice() }; saveAppStateToStorage(appState); }
+    const oldCanvas = document.querySelector('canvas'); if (oldCanvas) oldCanvas.remove();
     if (section === 'intro') showIntro();
     else if (section === 'block1') showBlockMenu();
     else if (section.startsWith('lesson')) {
         if (section.includes('-task')) showTask(section);
         else if (section.endsWith('-intro')) showLessonIntro(section.replace('-intro', ''));
         else showLessonMenu(section);
-    } else {
-        document.getElementById('dynamic-content').innerHTML = '<p>Раздел не найден.</p>';
-    }
+    } else document.getElementById('dynamic-content').innerHTML = '<p>Раздел не найден.</p>';
     updateSidebarActive(section);
 }
-function showIntro() {
-    currentView = 'intro'; currentTaskId = null;
-    document.getElementById('dynamic-content').innerHTML = '<h2>Добро пожаловать!</h2><p>Эта программа поможет вам освоить геометрию «с нуля» или исправить трудности.</p>';
-}
-function showBlockMenu() {
-    currentView = 'block1'; currentTaskId = null;
-    let html = '<h2>Блок 1. Учимся рисовать первичные чертежи</h2><ul>';
-    for (const [lessonId, lesson] of Object.entries(lessons)) {
-        html += '<li><a href="#" data-section="' + lessonId + '">' + lesson.title + '</a></li>';
-    }
-    html += '</ul>';
-    document.getElementById('dynamic-content').innerHTML = html;
-}
-function showLessonMenu(lessonId) {
-    currentView = lessonId; currentTaskId = null;
-    const lesson = lessons[lessonId];
-    if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; }
-    let html = '<h2>' + lesson.title + '</h2><ul>';
-    html += '<li><a href="#" data-section="' + lessonId + '-intro">Введение</a></li>';
-    for (const task of lesson.tasks) {
-        html += '<li><a href="#" data-section="' + task.id + '">' + task.title + '</a></li>';
-    }
-    html += '</ul>';
-    document.getElementById('dynamic-content').innerHTML = html;
-}
-function showLessonIntro(lessonId) {
-    currentView = lessonId + '-intro'; currentTaskId = null;
-    const lesson = lessons[lessonId];
-    if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; }
-    document.getElementById('dynamic-content').innerHTML = '<h2>' + lesson.title + '</h2>' + (lesson.intro || '');
-}
+function showIntro() { currentView = 'intro'; currentTaskId = null; document.getElementById('dynamic-content').innerHTML = '<h2>Добро пожаловать!</h2><p>Эта программа поможет вам освоить геометрию «с нуля» или исправить трудности.</p>'; }
+function showBlockMenu() { currentView = 'block1'; currentTaskId = null; let html = '<h2>Блок 1. Учимся рисовать первичные чертежи</h2><ul>'; for (const [lessonId, lesson] of Object.entries(lessons)) html += '<li><a href="#" data-section="' + lessonId + '">' + lesson.title + '</a></li>'; html += '</ul>'; document.getElementById('dynamic-content').innerHTML = html; }
+function showLessonMenu(lessonId) { currentView = lessonId; currentTaskId = null; const lesson = lessons[lessonId]; if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; } let html = '<h2>' + lesson.title + '</h2><ul>'; html += '<li><a href="#" data-section="' + lessonId + '-intro">Введение</a></li>'; for (const task of lesson.tasks) html += '<li><a href="#" data-section="' + task.id + '">' + task.title + '</a></li>'; html += '</ul>'; document.getElementById('dynamic-content').innerHTML = html; }
+function showLessonIntro(lessonId) { currentView = lessonId + '-intro'; currentTaskId = null; const lesson = lessons[lessonId]; if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; } document.getElementById('dynamic-content').innerHTML = '<h2>' + lesson.title + '</h2>' + (lesson.intro || ''); }
 function showTask(taskId) {
-    currentView = taskId;
-    let taskConfigId = null;
-    for (const lesson of Object.values(lessons)) {
-        const found = lesson.tasks.find(t => t.id === taskId);
-        if (found) { taskConfigId = found.taskConfigId; break; }
-    }
+    currentView = taskId; let taskConfigId = null;
+    for (const lesson of Object.values(lessons)) { const found = lesson.tasks.find(t => t.id === taskId); if (found) { taskConfigId = found.taskConfigId; break; } }
     if (!taskConfigId) { document.getElementById('dynamic-content').innerHTML = '<p>Задание не найдено.</p>'; return; }
     currentTaskId = taskConfigId;
-
-    const taskDef = tasks[taskConfigId];
-    const letters = taskDef.letters || [];
-
-    const taskTitle = getTaskTitle(taskId);
-    const html = generateTaskHTML(taskTitle, letters);
+    const taskDef = tasks[taskConfigId]; const letters = taskDef.letters || [];
+    const taskTitle = getTaskTitle(taskId); const html = generateTaskHTML(taskTitle, letters);
     document.getElementById('dynamic-content').innerHTML = html;
-
     const canvasEl = document.getElementById('lesson-canvas');
     if (canvasEl) {
-        initCanvas(canvasEl);
-        initUI('lesson');
-
-        getSegments().splice(0, getSegments().length);
-        namedPoints.splice(0, namedPoints.length);
-
+        initCanvas(canvasEl); initUI('lesson');
+        getSegments().splice(0, getSegments().length); namedPoints.splice(0, namedPoints.length);
         const state = appState[taskId];
-        if (state) {
-            if (state.segments) {
-                const segs = getSegments();
-                segs.push(...state.segments);
-            }
-            if (state.namedPoints) {
-                namedPoints.push(...state.namedPoints);
-            }
-            redraw();
-        } else {
-            clearDrawing();
-        }
+        if (state) { if (state.segments) { const segs = getSegments(); segs.push(...state.segments); } if (state.namedPoints) namedPoints.push(...state.namedPoints); redraw(); } else clearDrawing();
         attachEvents();
-
-        if (letters.length > 0) {
-            setAllowedLetters(letters);
-            if (pointsBtn) pointsBtn.style.display = 'inline-block';
-            if (pointButtonsContainer) pointButtonsContainer.style.display = 'none';
-        } else {
-            if (pointsBtn) pointsBtn.style.display = 'none';
-            if (pointButtonsContainer) pointButtonsContainer.style.display = 'none';
-        }
-        setTool('pointer');
-
-        if (clearBtn) clearBtn.onclick = clearDrawing;
-        if (undoBtn) undoBtn.onclick = undoLastAction;
-        if (checkBtn) checkBtn.onclick = handleCheck;
-        if (hintBtn) hintBtn.onclick = handleHint;
-        if (pointerBtn) pointerBtn.onclick = () => setTool('pointer');
-        if (lineBtn) lineBtn.onclick = () => setTool('line');
-        if (pointsBtn) pointsBtn.onclick = () => setTool('point');
-        if (eraserBtn) eraserBtn.onclick = () => setTool('eraser');
-
-        initHintTimer();
-        redraw();
+        if (letters.length > 0) { setAllowedLetters(letters); if (pointsBtn) pointsBtn.style.display = 'inline-block'; if (pointButtonsContainer) pointButtonsContainer.style.display = 'none'; }
+        else { if (pointsBtn) pointsBtn.style.display = 'none'; if (pointButtonsContainer) pointButtonsContainer.style.display = 'none'; }
+        setTool('line');
+        if (clearBtn) clearBtn.onclick = clearDrawing; if (undoBtn) undoBtn.onclick = undoLastAction;
+        if (checkBtn) checkBtn.onclick = handleCheck; if (hintBtn) hintBtn.onclick = handleHint;
+        if (pointerBtn) pointerBtn.onclick = () => setTool('pointer'); if (lineBtn) lineBtn.onclick = () => setTool('line');
+        if (pointsBtn) pointsBtn.onclick = () => setTool('point'); if (eraserBtn) eraserBtn.onclick = () => setTool('eraser');
+        initHintTimer(); redraw();
     }
 }
-function getTaskTitle(taskId) {
-    for (const lesson of Object.values(lessons)) {
-        const task = lesson.tasks.find(t => t.id === taskId);
-        if (task) return task.title;
-    }
-    return 'Задание';
-}
+function getTaskTitle(taskId) { for (const lesson of Object.values(lessons)) { const task = lesson.tasks.find(t => t.id === taskId); if (task) return task.title; } return 'Задание'; }
 function generateTaskHTML(title, letters) {
     const pointsBtnHtml = letters.length > 0 ? '<button class="pointsBtn">🔤 Точки</button>' : '';
     const containerHtml = '<div class="point-buttons-container" id="pointButtonsContainer"></div>';
-    return '<div class="header">' +
-        '<h1 class="task-title">' + title + '</h1>' +
-        '<h2 class="task-subtitle">' + (letters.length ? 'Постройте отрезки и обозначьте вершины' : 'Нарисуйте два пересекающихся отрезка') + '</h2>' +
-        '</div>' +
-        '<div class="workspace">' +
-        '<div class="left-buttons">' +
-        '<button class="undoBtn">↩️ Отменить</button>' +
-        '<button class="clearBtn">🧹 Очистить всё</button>' +
-        '<button class="pointerBtn active">🖱️ Указатель</button>' +
-        '<button class="eraserBtn">🧽 Ластик</button>' +
-        '<button class="lineBtn">📏 Линия</button>' +
-        pointsBtnHtml +
-        containerHtml +
-        '</div>' +
-        '<div class="canvas-wrapper">' +
-        '<canvas id="lesson-canvas" width="800" height="600"></canvas>' +
-        '<div class="info" id="status">…</div>' +
-        '<div class="result-area" id="resultArea"></div>' +
-        '</div>' +
-        '<div class="right-buttons">' +
-        '<button class="checkBtn">✅ Проверить</button>' +
-        '<button class="hintBtn" disabled>💡 Подсказка (30)</button>' +
-        '<div class="hintProgress"><div class="hintBar"></div></div>' +
-        '</div>' +
-        '<div class="right-panel">' +
-        '<div class="log-section"><h2>📍 Возможные точки</h2><ul class="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul></div>' +
-        (letters.length ? '<div class="log-section"><h2>📌 Именованные точки</h2><ul class="pointLogList"><li class="empty-log">Пока нет точек</li></ul></div>' : '') +
-        '<div class="log-section"><h2>📋 Отрезки</h2><ul class="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul></div>' +
-        '<div class="log-section"><h2>🧩 Производные отрезки</h2><ul class="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul></div>' +
-        '<div class="log-section"><h2>🔍 Анализ чертежа</h2><ul class="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul></div>' +
-        '</div>' +
-        '</div>';
+    return '<div class="header"><h1 class="task-title">' + title + '</h1><h2 class="task-subtitle">' + (letters.length ? 'Постройте отрезки и обозначьте вершины' : 'Нарисуйте два пересекающихся отрезка') + '</h2></div>' +
+    '<div class="workspace"><div class="left-buttons"><button class="undoBtn">↩️ Отменить</button><button class="clearBtn">🧹 Очистить всё</button><button class="pointerBtn">🖱️ Указатель</button><button class="eraserBtn">🧽 Ластик</button><button class="lineBtn active">📏 Линия</button>' + pointsBtnHtml + containerHtml + '</div>' +
+    '<div class="canvas-wrapper"><canvas id="lesson-canvas" width="800" height="600"></canvas><div class="info" id="status">…</div><div class="result-area" id="resultArea"></div></div>' +
+    '<div class="right-buttons"><button class="checkBtn">✅ Проверить</button><button class="hintBtn" disabled>💡 Подсказка (30)</button><div class="hintProgress"><div class="hintBar"></div></div></div>' +
+    '<div class="right-panel"><div class="log-section"><h2>📍 Возможные точки</h2><ul class="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul></div>' + (letters.length ? '<div class="log-section"><h2>📌 Именованные точки</h2><ul class="pointLogList"><li class="empty-log">Пока нет точек</li></ul></div>' : '') + '<div class="log-section"><h2>📋 Отрезки</h2><ul class="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul></div><div class="log-section"><h2>🧩 Производные отрезки</h2><ul class="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul></div><div class="log-section"><h2>🔍 Анализ чертежа</h2><ul class="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul></div></div></div>';
 }
-function handleCheck() {
-    if (!currentTaskId || !tasks[currentTaskId]) return;
-    const taskDef = tasks[currentTaskId];
-    const { result, analysis } = taskDef.check(getSegments(), namedPoints);
-    setResult(result);
-    setAnalysis(analysis);
-    if (result.includes('✅') && currentView) {
-        const added = markLessonCompleted(currentView);
-        if (added) { updateSidebarProgress(); setStatus('✅ Задача выполнена! Урок отмечен как пройденный.'); }
-    }
-}
-function handleHint() {
-    if (!currentTaskId || !tasks[currentTaskId]) return;
-    const { result, analysis } = tasks[currentTaskId].hint(getSegments());
-    setResult(result);
-    setAnalysis(analysis);
-}
-function initHintTimer() {
-    if (!hintBar || !hintBtn) return;
-    startHintTimer(2, () => {}, () => console.log('Подсказка доступна'));
-}
-function updateSidebarProgress() {
-    document.querySelectorAll('.sidebar-menu a[data-task]').forEach(a => {
-        const taskId = a.dataset.task;
-        if (isLessonCompleted(taskId)) a.classList.add('completed');
-        else a.classList.remove('completed');
-    });
-}
+function handleCheck() { if (!currentTaskId || !tasks[currentTaskId]) return; const taskDef = tasks[currentTaskId]; const { result, analysis } = taskDef.check(getSegments(), namedPoints); setResult(result); setAnalysis(analysis); if (result.includes('✅') && currentView) { const added = markLessonCompleted(currentView); if (added) { updateSidebarProgress(); setStatus('✅ Задача выполнена!'); } } }
+function handleHint() { if (!currentTaskId || !tasks[currentTaskId]) return; const { result, analysis } = tasks[currentTaskId].hint(getSegments()); setResult(result); setAnalysis(analysis); }
+function initHintTimer() { if (!hintBar || !hintBtn) return; startHintTimer(2, () => {}, () => console.log('Подсказка доступна')); }
+function updateSidebarProgress() { document.querySelectorAll('.sidebar-menu a[data-task]').forEach(a => { if (isLessonCompleted(a.dataset.task)) a.classList.add('completed'); else a.classList.remove('completed'); }); }
 function buildSidebarMenu() {
-    const menu = document.getElementById('sidebar-menu');
-    menu.innerHTML = '';
-
-    const introLi = document.createElement('li');
-    introLi.innerHTML = '<a href="#" data-section="intro">Введение</a>';
-    menu.appendChild(introLi);
-
-    const block1Li = document.createElement('li');
-    block1Li.innerHTML = '<a href="#" class="block-title" data-section="block1">Блок 1. Учимся рисовать первичные чертежи</a>';
-    const block1Submenu = document.createElement('ul');
-    block1Submenu.className = 'submenu';
-
+    const menu = document.getElementById('sidebar-menu'); menu.innerHTML = '';
+    const introLi = document.createElement('li'); introLi.innerHTML = '<a href="#" data-section="intro">Введение</a>'; menu.appendChild(introLi);
+    const block1Li = document.createElement('li'); block1Li.innerHTML = '<a href="#" class="block-title" data-section="block1">Блок 1. Учимся рисовать первичные чертежи</a>';
+    const block1Submenu = document.createElement('ul'); block1Submenu.className = 'submenu';
     for (const [lessonId, lesson] of Object.entries(lessons)) {
-        const lessonLi = document.createElement('li');
-        lessonLi.innerHTML = '<a href="#" data-section="' + lessonId + '">' + lesson.title + '</a>';
-        const lessonSubmenu = document.createElement('ul');
-        lessonSubmenu.className = 'submenu';
-
-        const introTaskLi = document.createElement('li');
-        introTaskLi.innerHTML = '<a href="#" data-section="' + lessonId + '-intro">Введение</a>';
-        lessonSubmenu.appendChild(introTaskLi);
-
-        for (const task of lesson.tasks) {
-            const taskLi = document.createElement('li');
-            taskLi.innerHTML = '<a href="#" data-task="' + task.id + '" data-section="' + task.id + '">' + task.title + '</a>';
-            lessonSubmenu.appendChild(taskLi);
-        }
-
-        lessonLi.appendChild(lessonSubmenu);
-        block1Submenu.appendChild(lessonLi);
+        const lessonLi = document.createElement('li'); lessonLi.innerHTML = '<a href="#" data-section="' + lessonId + '">' + lesson.title + '</a>';
+        const lessonSubmenu = document.createElement('ul'); lessonSubmenu.className = 'submenu';
+        const introTaskLi = document.createElement('li'); introTaskLi.innerHTML = '<a href="#" data-section="' + lessonId + '-intro">Введение</a>'; lessonSubmenu.appendChild(introTaskLi);
+        for (const task of lesson.tasks) { const taskLi = document.createElement('li'); taskLi.innerHTML = '<a href="#" data-task="' + task.id + '" data-section="' + task.id + '">' + task.title + '</a>'; lessonSubmenu.appendChild(taskLi); }
+        lessonLi.appendChild(lessonSubmenu); block1Submenu.appendChild(lessonLi);
     }
-
-    block1Li.appendChild(block1Submenu);
-    menu.appendChild(block1Li);
-
-    document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            navigateTo(link.dataset.section);
-        });
-    });
+    block1Li.appendChild(block1Submenu); menu.appendChild(block1Li);
+    document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); navigateTo(link.dataset.section); }); });
 }
-function updateSidebarActive(section) {
-    document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
-    const link = document.querySelector('[data-section="' + section + '"]');
-    if (link) link.classList.add('active');
-    updateSidebarProgress();
-}
-document.getElementById('dynamic-content').addEventListener('click', (e) => {
-    const target = e.target.closest('a[data-section]');
-    if (target) {
-        e.preventDefault();
-        navigateTo(target.dataset.section);
-    }
-});
-
-buildSidebarMenu();
-navigateTo('intro');
+function updateSidebarActive(section) { document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active')); const link = document.querySelector('[data-section="' + section + '"]'); if (link) link.classList.add('active'); updateSidebarProgress(); }
+document.getElementById('dynamic-content').addEventListener('click', (e) => { const target = e.target.closest('a[data-section]'); if (target) { e.preventDefault(); navigateTo(target.dataset.section); } });
+buildSidebarMenu(); navigateTo('intro');
 `
 };
 
-// Запись всех файлов
+// ===== ЗАПИСЬ ВСЕХ ФАЙЛОВ =====
 console.log('🔄 Полное обновление проекта...');
 for (const [filePath, content] of Object.entries(files)) {
     const fullPath = path.join(PROJECT_DIR, filePath);
@@ -1485,4 +991,4 @@ for (const [filePath, content] of Object.entries(files)) {
     fs.writeFileSync(fullPath, content, 'utf8');
     console.log('✅ ' + filePath);
 }
-console.log('\n🎉 Готово! Запустите node server.js – проверка заданий теперь работает.');
+console.log('\n🎉 Готово! Запустите node server.js – теперь всё должно работать без ошибок.');
