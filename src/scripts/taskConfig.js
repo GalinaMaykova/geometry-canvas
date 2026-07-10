@@ -1,4 +1,3 @@
-// Описание уроков и заданий
 export const lessons = {
     'lesson1-1': {
         title: 'Занятие 1. Знакомство с редактором',
@@ -18,7 +17,6 @@ export const lessons = {
     }
 };
 
-// Конфигурации проверок и подсказок (пока используем одну для всех)
 export const tasks = {
     'task1-1': {
         check(segments) {

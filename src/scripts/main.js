@@ -31,22 +31,17 @@ import {
 
 console.log('🚀 main.js загружен!');
 
-// Глобальные переменные для текущего задания
 let startPoint = null;
 let endPoint = null;
 let actionHistory = [];
 let activeLabel = null;
 
-// Состояние каждого задания: { segments, possiblePoints, namedPoints, actionHistory, startPoint, endPoint, activeLabel }
-// Загружаем из localStorage при старте
 let appState = loadAppStateFromStorage();
 
-// Текущий открытый раздел (идентификатор задания или урока/введения)
-let currentView = null;   // например, 'lesson1-1-task1' или 'lesson1-1' или 'intro'
-let currentTaskId = null; // ID задания (если открыто задание)
+let currentView = null;
+let currentTaskId = null;
 let canvasReady = false;
 
-// Вспомогательные функции
 function getPointFullName(x, y) {
     let tId = '?', letter = null;
     for (let pp of possiblePoints) if (Math.abs(pp.x - x) < 1 && Math.abs(pp.y - y) < 1) { tId = pp.id; break; }
@@ -91,7 +86,6 @@ function isPointOnSegment(p, seg) {
     return Math.hypot(p.x - projX, p.y - projY) < 2;
 }
 
-// Сохранение и восстановление состояния
 function saveCurrentState() {
     if (!currentView) return;
     appState[currentView] = {
@@ -103,7 +97,6 @@ function saveCurrentState() {
         endPoint: endPoint ? { ...endPoint } : null,
         activeLabel: activeLabel
     };
-    // Сохраняем в localStorage
     saveAppStateToStorage(appState);
 }
 
@@ -130,7 +123,6 @@ function restoreState(viewId) {
     }
 }
 
-// Отрисовка
 function render() {
     if (!ctx) return;
     ctx.clearRect(0, 0, W, H);
@@ -165,7 +157,6 @@ function refreshLogs() {
     updateDerivedSegmentLog(getDerivedSegments());
 }
 
-// Обработчик клика
 function handleCanvasClick(e) {
     const pos = getMousePos(e);
     const x = pos.x, y = pos.y;
@@ -190,19 +181,18 @@ function handleCanvasClick(e) {
         updatePossiblePoints(segments);
         render();
         refreshLogs();
-        saveCurrentState(); // сохраняем после каждого добавления отрезка
+        saveCurrentState();
         setStatus('Отрезок готов!');
     }
 }
 
-// Обработчики кнопок
 function handleClear() {
     clearSegments(); clearNamedPoints(); clearPossiblePoints();
     clearSegmentLog(); clearNamedPointLog(); clearAnalysis();
     updatePossiblePointLog([]);
     startPoint = null; endPoint = null;
     resetAllButtons(); setActivePointBtn(null); activeLabel = null; actionHistory = [];
-    saveCurrentState(); // сохраняем пустое состояние
+    saveCurrentState();
     setStatus('Всё стёрто!');
     render();
 }
@@ -249,7 +239,6 @@ function initHintTimer() {
     startHintTimer(2, () => {}, () => console.log('Подсказка доступна'));
 }
 
-// Обновление значков прогресса в меню
 function updateSidebarProgress() {
     document.querySelectorAll('.sidebar-menu a[data-task]').forEach(a => {
         const taskId = a.dataset.task;
@@ -261,17 +250,14 @@ function updateSidebarProgress() {
     });
 }
 
-// Генерация полного меню (как раньше)
 function buildSidebarMenu() {
     const menu = document.getElementById('sidebar-menu');
     menu.innerHTML = '';
 
-    // Введение
     const introLi = document.createElement('li');
     introLi.innerHTML = '<a href="#" data-section="intro">Введение</a>';
     menu.appendChild(introLi);
 
-    // Блок 1 с уроками и подпунктами
     const block1Li = document.createElement('li');
     block1Li.innerHTML = '<a href="#" class="block-title" data-section="block1">Блок 1. Учимся рисовать первичные чертежи</a>';
     const block1Submenu = document.createElement('ul');
@@ -283,12 +269,10 @@ function buildSidebarMenu() {
         const lessonSubmenu = document.createElement('ul');
         lessonSubmenu.className = 'submenu';
 
-        // Введение урока
         const introTaskLi = document.createElement('li');
         introTaskLi.innerHTML = '<a href="#" data-section="' + lessonId + '-intro">Введение</a>';
         lessonSubmenu.appendChild(introTaskLi);
 
-        // Задания
         for (const task of lesson.tasks) {
             const taskLi = document.createElement('li');
             taskLi.innerHTML = '<a href="#" data-task="' + task.id + '" data-section="' + task.id + '">' + task.title + '</a>';
@@ -302,7 +286,6 @@ function buildSidebarMenu() {
     block1Li.appendChild(block1Submenu);
     menu.appendChild(block1Li);
 
-    // Привязываем обработчики
     document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -311,11 +294,8 @@ function buildSidebarMenu() {
     });
 }
 
-// Навигация
 function navigateTo(section) {
-    if (currentView && currentTaskId) {
-        saveCurrentState();
-    }
+    if (currentView && currentTaskId) saveCurrentState();
 
     if (canvas) {
         canvas.removeEventListener('click', handleCanvasClick);
@@ -470,7 +450,6 @@ function updateSidebarActive(section) {
     updateSidebarProgress();
 }
 
-// Делегирование кликов в основной области для ссылок с data-section
 document.getElementById('dynamic-content').addEventListener('click', (e) => {
     const target = e.target.closest('a[data-section]');
     if (target) {
@@ -479,6 +458,5 @@ document.getElementById('dynamic-content').addEventListener('click', (e) => {
     }
 });
 
-// Старт приложения
 buildSidebarMenu();
 navigateTo('intro');
