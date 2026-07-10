@@ -4,18 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Справиться с математикой. Осваиваем геометрию</title>
+    <!-- Подключаем стили -->
     <link rel="stylesheet" href="src/styles/main.css">
 </head>
 <body>
+    <!-- Основной контейнер, разделённый на боковую панель и контент -->
     <div class="app-container">
+        <!-- Левая боковая панель с навигацией по урокам -->
         <nav class="sidebar">
             <div class="sidebar-header">📐 Геометрия</div>
+            <!-- Меню заполняется динамически из JavaScript -->
             <ul class="sidebar-menu" id="sidebar-menu"></ul>
         </nav>
+        <!-- Основная область, содержимое меняется при выборе урока/задания -->
         <main class="content">
             <div id="dynamic-content"></div>
         </main>
     </div>
+
+    <!-- Кнопка сброса кэша для разработчика (правый верхний угол) -->
+    <button class="dev-reset-btn" title="Сбросить кэш и историю">🔄</button>
+
+    <!-- Главный JavaScript-модуль -->
     <script type="module" src="src/scripts/main.js"></script>
 </body>
 </html>
