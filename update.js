@@ -4,453 +4,202 @@ const path = require('path');
 const PROJECT_DIR = __dirname;
 
 const files = {
-    // ===== server.js, index.html, main.css, canvas.js, grid.js, possiblePoints.js, points.js, segments.js, ui.js, taskConfig.js, progress.js, main.js =====
-    // Они полностью идентичны последней полной версии. Я приведу только обновлённый drawing.js.
+    // ... (server.js, index.html, main.css, canvas.js, grid.js, possiblePoints.js, points.js, segments.js, taskConfig.js, progress.js, drawing.js, main.js)
+    // Все эти файлы остаются без изменений по сравнению с последним рабочим вариантом.
+    // Приводим только изменённый ui.js с отладочной информацией.
 
-    'src/scripts/drawing.js':
-`import { canvas, ctx, W, H, getMousePos } from './canvas.js';
-import { drawGrid, snapToGrid, isInsideCanvas } from './grid.js';
-import {
-    possiblePoints, updatePossiblePoints, findClosestPossiblePoint,
-    drawPossiblePoints, clearPossiblePoints
-} from './possiblePoints.js';
-import {
-    namedPoints, clearNamedPoints, drawNamedPoints
-} from './points.js';
-import {
-    segments, addSegment, removeLastSegment, clearSegments, drawAllSegments
-} from './segments.js';
-import {
-    setStatus, updatePossiblePointLog, updateSegmentLog,
-    removeLastSegmentLog, clearSegmentLog, updateDerivedSegmentLog,
-    setAnalysis, setResult, clearAnalysis,
-    getActivePointBtn, setActivePointBtn, disablePointBtn, enablePointBtn,
-    resetAllButtons, startHintTimer,
-    clearNamedPointLog,
-    showDeleteButton, hideDeleteButton
-} from './ui.js';
+    'src/scripts/ui.js':
+`export let statusEl, resultArea, possiblePointLog, pointLogList, segmentLogList, derivedSegmentLog, analysisLog;
+export let pointBtns, clearBtn, undoBtn, checkBtn, hintBtn, hintBar;
+export let pointerBtn, lineBtn, pointsBtn, eraserBtn, pointButtonsContainer;
 
-console.log('🔧 drawing.js загружен');
-
-let startPoint = null;
-let endPoint = null;
-let actionHistory = [];
-const MAX_HISTORY = 100;
-let activeLabel = null;
-
-let dragMode = 'none';
-let dragPoint = null;
-let dragSegment = null;
-let dragStartPos = null;
-let originalSegmentCoords = null;
-let mouseDownPos = null;
-let isDragging = false;
-
-let selectedSegment = null;
-
-// Флаг: был ли клик по уже выделенному отрезку (чтобы снять выделение в mouseup)
-let clickedOnSelected = false;
-
-const POINT_GRAB_RADIUS = 12;
-const SEGMENT_GRAB_RADIUS = 10;
-
-function getPointFullName(x, y) {
-    let tId = '?', letter = null;
-    for (let pp of possiblePoints) if (Math.abs(pp.x - x) < 1 && Math.abs(pp.y - y) < 1) { tId = pp.id; break; }
-    for (let np of namedPoints) if (Math.abs(np.x - x) < 1 && Math.abs(np.y - y) < 1) { letter = np.label; break; }
-    return { tId, letter };
+export function initUI(prefix) {
+    statusEl = document.getElementById('status');
+    resultArea = document.getElementById('resultArea');
+    possiblePointLog = document.querySelector('.possiblePointLog');
+    pointLogList = document.querySelector('.pointLogList');
+    segmentLogList = document.querySelector('.segmentLogList');
+    derivedSegmentLog = document.querySelector('.derivedSegmentLog');
+    analysisLog = document.querySelector('.analysisLog');
+    pointBtns = document.querySelectorAll('.point-btn');
+    clearBtn = document.querySelector('.clearBtn');
+    undoBtn = document.querySelector('.undoBtn');
+    checkBtn = document.querySelector('.checkBtn');
+    hintBtn = document.querySelector('.hintBtn');
+    hintBar = document.querySelector('.hintBar');
+    pointerBtn = document.querySelector('.pointerBtn');
+    lineBtn = document.querySelector('.lineBtn');
+    pointsBtn = document.querySelector('.pointsBtn');
+    eraserBtn = document.querySelector('.eraserBtn');
+    pointButtonsContainer = document.getElementById('pointButtonsContainer');
+    console.log('initUI: pointButtonsContainer =', pointButtonsContainer);
 }
 
-function getDerivedSegments() {
-    try {
-        const derived = [];
-        if (!segments || !possiblePoints) return derived;
-        for (let seg of segments) {
-            const pts = [];
-            for (let p of possiblePoints) if (isPointOnSegment(p, seg)) pts.push({x: p.x, y: p.y, id: p.id});
-            const uniq = [], seen = new Set();
-            for (let p of pts) { const k = p.x+','+p.y; if (!seen.has(k)) { seen.add(k); uniq.push(p); } }
-            const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
-            uniq.sort((a,b) => (dx!==0?(a.x-seg.x1)/dx:(a.y-seg.y1)/dy) - (dx!==0?(b.x-seg.x1)/dx:(b.y-seg.y1)/dy));
-            for (let i=0; i<uniq.length-1; i++) {
-                const p1=uniq[i], p2=uniq[i+1];
-                const f1=getPointFullName(p1.x,p1.y), f2=getPointFullName(p2.x,p2.y);
-                derived.push({
-                    x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,
-                    name1: f1.letter ? f1.tId+'('+f1.letter+')' : f1.tId,
-                    name2: f2.letter ? f2.tId+'('+f2.letter+')' : f2.tId
-                });
-            }
+export function setStatus(text) { if (statusEl) statusEl.innerHTML = text; }
+export function updatePossiblePointLog(points) {
+    if (!possiblePointLog) return;
+    possiblePointLog.innerHTML = '';
+    if (!points.length) { possiblePointLog.innerHTML = '<li class="empty-log">Пока нет возможных точек</li>'; return; }
+    for (let p of points) { const li = document.createElement('li'); li.textContent = p.id + ' (' + Math.round(p.x) + ', ' + Math.round(p.y) + ')'; possiblePointLog.appendChild(li); }
+}
+export function addNamedPointLog(label, x, y) {
+    if (!pointLogList) return;
+    const empty = pointLogList.querySelector('.empty-log'); if (empty) empty.remove();
+    const li = document.createElement('li');
+    li.textContent = '[' + new Date().toLocaleTimeString() + '] ' + label + ' (' + Math.round(x) + ', ' + Math.round(y) + ')';
+    pointLogList.appendChild(li); pointLogList.scrollTop = pointLogList.scrollHeight;
+}
+export function removeLastNamedPointLog() {
+    if (!pointLogList) return;
+    const items = pointLogList.querySelectorAll('li:not(.empty-log)');
+    if (items.length) items[items.length - 1].remove();
+    if (!pointLogList.querySelectorAll('li:not(.empty-log)').length) pointLogList.innerHTML = '<li class="empty-log">Пока нет точек</li>';
+}
+export function clearNamedPointLog() { if (pointLogList) pointLogList.innerHTML = '<li class="empty-log">Пока нет точек</li>'; }
+export function updateSegmentLog(segs, getInfo) {
+    if (!segmentLogList) return;
+    segmentLogList.innerHTML = '';
+    if (!segs.length) { segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>'; return; }
+    for (let s of segs) {
+        const a = getInfo(s.x1, s.y1), b = getInfo(s.x2, s.y2);
+        const nameA = a.letter ? a.tId + '(' + a.letter + ')' : a.tId;
+        const nameB = b.letter ? b.tId + '(' + b.letter + ')' : b.tId;
+        const li = document.createElement('li');
+        li.textContent = nameA + '-' + nameB + '  (' + Math.round(s.x1) + ',' + Math.round(s.y1) + ') → (' + Math.round(s.x2) + ',' + Math.round(s.y2) + ')';
+        segmentLogList.appendChild(li);
+    }
+}
+export function removeLastSegmentLog() {
+    if (!segmentLogList) return;
+    const items = segmentLogList.querySelectorAll('li:not(.empty-log)');
+    if (items.length) items[items.length - 1].remove();
+    if (!segmentLogList.querySelectorAll('li:not(.empty-log)').length) segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
+}
+export function updateDerivedSegmentLog(derived) {
+    if (!derivedSegmentLog) return;
+    if (!Array.isArray(derived)) derived = [];
+    derivedSegmentLog.innerHTML = '';
+    if (!derived.length) { derivedSegmentLog.innerHTML = '<li class="empty-log">Пока нет производных отрезков</li>'; return; }
+    for (let s of derived) {
+        const li = document.createElement('li');
+        li.textContent = s.name1 + '-' + s.name2 + '  (' + Math.round(s.x1) + ',' + Math.round(s.y1) + ') → (' + Math.round(s.x2) + ',' + Math.round(s.y2) + ')';
+        derivedSegmentLog.appendChild(li);
+    }
+}
+export function clearSegmentLog() {
+    if (segmentLogList) segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
+    if (derivedSegmentLog) derivedSegmentLog.innerHTML = '<li class="empty-log">Пока нет производных отрезков</li>';
+}
+export function setAnalysis(items) {
+    if (!analysisLog) return;
+    analysisLog.innerHTML = '';
+    if (!items || !items.length) { analysisLog.innerHTML = '<li class="empty-log">Нет данных для анализа</li>'; return; }
+    for (let item of items) { const li = document.createElement('li'); li.textContent = item; analysisLog.appendChild(li); }
+}
+export function setResult(text) { if (resultArea) resultArea.textContent = text; }
+export function clearAnalysis() { if (analysisLog) analysisLog.innerHTML = ''; if (resultArea) resultArea.textContent = ''; }
+export function getActivePointBtn() { return document.querySelector('.point-btn.active'); }
+export function setActivePointBtn(label) {
+    pointBtns.forEach(b => b.classList.remove('active'));
+    if (label) { const btn = document.querySelector('.point-btn[data-label="' + label + '"]'); if (btn) btn.classList.add('active'); }
+}
+export function disablePointBtn(label) {
+    const btn = document.querySelector('.point-btn[data-label="' + label + '"]');
+    if (btn) { btn.disabled = true; btn.classList.remove('active'); }
+}
+export function enablePointBtn(label) {
+    const btn = document.querySelector('.point-btn[data-label="' + label + '"]');
+    if (btn) btn.disabled = false;
+}
+export function resetAllButtons() { pointBtns.forEach(b => { b.disabled = false; b.classList.remove('active'); }); }
+export function startHintTimer(duration, onTick, onComplete) {
+    let remaining = duration;
+    hintBtn.disabled = true; hintBtn.textContent = '💡 Подсказка (' + remaining + ')'; hintBar.style.width = '0%';
+    const interval = setInterval(() => {
+        remaining--;
+        const progress = ((duration - remaining) / duration) * 100;
+        hintBar.style.width = progress + '%'; hintBtn.textContent = '💡 Подсказка (' + remaining + ')';
+        if (remaining <= 0) {
+            clearInterval(interval);
+            hintBtn.disabled = false; hintBtn.textContent = '💡 Подсказка'; hintBar.style.width = '100%';
+            if (onComplete) onComplete();
         }
-        return derived;
-    } catch (e) { console.error(e); return []; }
+        if (onTick) onTick(remaining);
+    }, 1000);
 }
 
-function isPointOnSegment(p, seg) {
-    const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
-    const len2 = dx*dx + dy*dy;
-    if (len2 === 0) return Math.abs(p.x - seg.x1) < 1 && Math.abs(p.y - seg.y1) < 1;
-    const t = ((p.x - seg.x1)*dx + (p.y - seg.y1)*dy) / len2;
-    if (t < -0.001 || t > 1.001) return false;
-    const projX = seg.x1 + t*dx, projY = seg.y1 + t*dy;
-    return Math.hypot(p.x - projX, p.y - projY) < 2;
+// Инструменты
+export function setPointerActive() {
+    if (pointerBtn) pointerBtn.classList.add('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
 }
-
-function distanceToSegment(px, py, seg) {
-    const { x1, y1, x2, y2 } = seg;
-    const dx = x2 - x1, dy = y2 - y1;
-    const len2 = dx*dx + dy*dy;
-    if (len2 === 0) return Math.hypot(px - x1, py - y1);
-    let t = ((px - x1)*dx + (py - y1)*dy) / len2;
-    t = Math.max(0, Math.min(1, t));
-    const projX = x1 + t*dx, projY = y1 + t*dy;
-    return Math.hypot(px - projX, py - projY);
+export function setLineActive() {
+    if (lineBtn) lineBtn.classList.add('active');
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
 }
-
-function findClosestSegment(px, py, maxDist = SEGMENT_GRAB_RADIUS) {
-    let best = null, bestDist = Infinity;
-    for (let seg of segments) {
-        const dist = distanceToSegment(px, py, seg);
-        if (dist < bestDist && dist <= maxDist) { bestDist = dist; best = seg; }
-    }
-    return best;
-}
-
-function pushHistory(action) {
-    actionHistory.push(action);
-    if (actionHistory.length > MAX_HISTORY) actionHistory.shift();
-}
-
-function snapshotSegments() {
-    return segments.map(seg => ({ ...seg }));
-}
-
-function render() {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, W, H);
-    drawGrid();
-    drawAllSegments();
-    if (selectedSegment) {
-        ctx.save();
-        ctx.strokeStyle = '#f39c12';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(selectedSegment.x1, selectedSegment.y1);
-        ctx.lineTo(selectedSegment.x2, selectedSegment.y2);
-        ctx.stroke();
-        ctx.restore();
-    }
-    drawPossiblePoints();
-    drawNamedPoints();
-    drawTempSegment();
-    drawMarkers();
-}
-
-function drawTempSegment() {
-    if (startPoint && endPoint) {
-        ctx.save();
-        ctx.setLineDash([4,4]); ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(startPoint.x, startPoint.y); ctx.lineTo(endPoint.x, endPoint.y); ctx.stroke();
-        ctx.restore();
+export function setPointsActive() {
+    console.log('setPointsActive вызвана');
+    if (pointsBtn) pointsBtn.classList.add('active');
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) {
+        pointButtonsContainer.classList.add('visible');
+        pointButtonsContainer.style.display = 'flex';   // принудительно
+        console.log('Контейнер точек: classList=', pointButtonsContainer.classList);
+        console.log('Контейнер точек: style.display=', pointButtonsContainer.style.display);
+        console.log('Контейнер точек: размеры', pointButtonsContainer.offsetWidth, pointButtonsContainer.offsetHeight);
+        console.log('Контейнер точек: children=', pointButtonsContainer.children.length);
+    } else {
+        console.error('pointButtonsContainer не найден!');
     }
 }
-
-function drawMarkers() {
-    ctx.save();
-    ctx.fillStyle = '#e74c3c';
-    if (startPoint) { ctx.beginPath(); ctx.arc(startPoint.x, startPoint.y, 5, 0, 2*Math.PI); ctx.fill(); }
-    if (endPoint) { ctx.beginPath(); ctx.arc(endPoint.x, endPoint.y, 5, 0, 2*Math.PI); ctx.fill(); }
-    ctx.restore();
+export function setEraserActive() {
+    if (eraserBtn) eraserBtn.classList.add('active');
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+}
+export function resetTools() {
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
 }
 
-function refreshLogs() {
-    updatePossiblePointLog(possiblePoints);
-    updateSegmentLog(segments, getPointFullName);
-    updateDerivedSegmentLog(getDerivedSegments());
-}
-
-function onMouseDown(e) {
-    const pos = getMousePos(e);
-    const px = pos.x, py = pos.y;
-    mouseDownPos = { x: px, y: py };
-    isDragging = false;
-    clickedOnSelected = false; // сбрасываем флаг
-
-    if (!startPoint) {
-        const closestPoint = findClosestPossiblePoint(px, py, POINT_GRAB_RADIUS);
-        if (closestPoint) {
-            dragMode = 'point';
-            dragPoint = closestPoint;
-            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
-            clearSelection();
-            e.preventDefault();
-            return;
-        }
-
-        const closestSeg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS);
-        if (closestSeg) {
-            if (closestSeg === selectedSegment) {
-                // Клик по уже выделенному отрезку – запоминаем, чтобы снять выделение при mouseup
-                clickedOnSelected = true;
-            } else {
-                // Новый отрезок – выделяем его
-                selectSegment(closestSeg);
-            }
-            dragMode = 'segment';
-            dragSegment = closestSeg;
-            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
-            originalSegmentCoords = {
-                x1: closestSeg.x1, y1: closestSeg.y1,
-                x2: closestSeg.x2, y2: closestSeg.y2
-            };
-            e.preventDefault();
-            return;
-        }
-    }
-
-    // Клик на пустом месте – снимаем выделение
-    clearSelection();
-    dragMode = 'none';
-}
-
-function onMouseMove(e) {
-    const pos = getMousePos(e);
-    const px = pos.x, py = pos.y;
-
-    if (mouseDownPos && !isDragging) {
-        const dx = px - mouseDownPos.x, dy = py - mouseDownPos.y;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDragging = true;
-    }
-
-    if (dragMode === 'point' && dragPoint) {
-        const snapX = snapToGrid(px), snapY = snapToGrid(py);
-        for (let seg of segments) {
-            if (Math.abs(seg.x1 - dragPoint.x) < 1 && Math.abs(seg.y1 - dragPoint.y) < 1) { seg.x1 = snapX; seg.y1 = snapY; }
-            if (Math.abs(seg.x2 - dragPoint.x) < 1 && Math.abs(seg.y2 - dragPoint.y) < 1) { seg.x2 = snapX; seg.y2 = snapY; }
-        }
-        dragPoint.x = snapX;
-        dragPoint.y = snapY;
-        updatePossiblePoints(segments);
-        render();
-        refreshLogs();
-    } else if (dragMode === 'segment' && dragSegment) {
-        const snapX = snapToGrid(px), snapY = snapToGrid(py);
-        const dx = snapX - dragStartPos.x;
-        const dy = snapY - dragStartPos.y;
-        dragSegment.x1 = originalSegmentCoords.x1 + dx;
-        dragSegment.y1 = originalSegmentCoords.y1 + dy;
-        dragSegment.x2 = originalSegmentCoords.x2 + dx;
-        dragSegment.y2 = originalSegmentCoords.y2 + dy;
-        updatePossiblePoints(segments);
-        render();
-        refreshLogs();
-    }
-
-    if (startPoint && !endPoint && !isDragging && dragMode === 'none') {
-        endPoint = { x: snapToGrid(px), y: snapToGrid(py) };
-        render();
-    }
-}
-
-function onMouseUp(e) {
-    const pos = getMousePos(e);
-    const px = pos.x, py = pos.y;
-
-    if (isDragging) {
-        // Завершение перетаскивания (не снимаем выделение)
-        if (dragMode === 'point' || dragMode === 'segment') {
-            pushHistory({
-                type: 'move',
-                oldSegments: snapshotSegments(),
-                newSegments: snapshotSegments()
-            });
-        }
-        dragMode = 'none';
-        dragPoint = null;
-        dragSegment = null;
-        dragStartPos = null;
-        originalSegmentCoords = null;
-        isDragging = false;
-        mouseDownPos = null;
-        clickedOnSelected = false;
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        render();
-        refreshLogs();
+export function populatePointButtons(letters) {
+    console.log('populatePointButtons вызвана с буквами:', letters);
+    if (!pointButtonsContainer) {
+        console.error('populatePointButtons: контейнер не найден!');
         return;
     }
-
-    // Клик без перетаскивания
-    if (dragMode === 'segment' && clickedOnSelected) {
-        // Повторный клик по выделенному отрезку – снимаем выделение
-        clearSelection();
-    } else if (dragMode === 'segment') {
-        // Клик по новому отрезку (выделение уже произошло в mousedown)
-        // Ничего дополнительного не делаем
-    }
-
-    if (dragMode === 'none') {
-        handleCanvasClickAt(px, py);
-    }
-
-    dragMode = 'none';
-    dragPoint = null;
-    dragSegment = null;
-    dragStartPos = null;
-    originalSegmentCoords = null;
-    isDragging = false;
-    mouseDownPos = null;
-    clickedOnSelected = false;
-}
-
-function handleCanvasClickAt(px, py) {
-    const snapX = snapToGrid(px), snapY = snapToGrid(py);
-    if (!isInsideCanvas(snapX, snapY)) { setStatus('Кликни внутри поля'); return; }
-
-    if (!startPoint) {
-        startPoint = { x: snapX, y: snapY };
-        endPoint = null;
-        setStatus('Теперь кликни, чтобы выбрать конец отрезка ✏️');
-        render();
-    } else {
-        if (startPoint.x === snapX && startPoint.y === snapY) {
-            setStatus('Ты выбрал ту же точку. Начни сначала.');
-            startPoint = null;
-            endPoint = null;
-            render();
-            return;
-        }
-        const finalEnd = { x: snapX, y: snapY };
-        addSegment(startPoint.x, startPoint.y, finalEnd.x, finalEnd.y);
-        pushHistory({
-            type: 'add',
-            segment: { x1: startPoint.x, y1: startPoint.y, x2: finalEnd.x, y2: finalEnd.y }
-        });
-        startPoint = null;
-        endPoint = null;
-        updatePossiblePoints(segments);
-        render();
-        refreshLogs();
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        setStatus('Отрезок готов!');
-    }
-}
-
-function selectSegment(seg) {
-    if (selectedSegment !== seg) {
-        selectedSegment = seg;
-        showDeleteButton();
-    }
-    render();
-}
-
-function clearSelection() {
-    if (selectedSegment) {
-        selectedSegment = null;
-        hideDeleteButton();
-        render();
-    }
-}
-
-export function deleteSelectedSegment() {
-    if (!selectedSegment) return;
-    pushHistory({
-        type: 'delete',
-        segment: { ...selectedSegment }
+    pointButtonsContainer.innerHTML = '';
+    letters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.className = 'point-btn';
+        btn.dataset.label = letter;
+        btn.textContent = letter;
+        pointButtonsContainer.appendChild(btn);
     });
-    const index = segments.indexOf(selectedSegment);
-    if (index !== -1) {
-        segments.splice(index, 1);
-        updatePossiblePoints(segments);
-        clearSelection();
-        render();
-        refreshLogs();
-        if (typeof onDrawingChanged === 'function') onDrawingChanged();
-        setStatus('Отрезок удалён');
-    }
+    pointBtns = document.querySelectorAll('.point-btn');
+    console.log('Добавлены кнопки:', letters, 'всего кнопок:', pointButtonsContainer.children.length);
 }
-
-export function attachEvents() {
-    if (!canvas) return;
-    canvas.addEventListener('mousedown', onMouseDown);
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseup', onMouseUp);
-}
-
-export function detachEvents() {
-    if (!canvas) return;
-    canvas.removeEventListener('mousedown', onMouseDown);
-    canvas.removeEventListener('mousemove', onMouseMove);
-    canvas.removeEventListener('mouseup', onMouseUp);
-}
-
-export function clearDrawing() {
-    clearSegments();
-    clearNamedPoints();
-    clearPossiblePoints();
-    clearSegmentLog();
-    clearNamedPointLog();
-    clearAnalysis();
-    updatePossiblePointLog([]);
-    startPoint = null;
-    endPoint = null;
-    actionHistory = [];
-    activeLabel = null;
-    selectedSegment = null;
-    resetAllButtons();
-    setActivePointBtn(null);
-    hideDeleteButton();
-    if (typeof onDrawingChanged === 'function') onDrawingChanged();
-    render();
-}
-
-export function undoLastAction() {
-    if (startPoint) { startPoint = null; endPoint = null; setStatus('Сброшено'); render(); return; }
-    if (!actionHistory.length) { setStatus('Нет действий для отмены'); return; }
-    const last = actionHistory.pop();
-    if (last.type === 'add') {
-        const removed = segments.pop();
-        if (removed) {
-            updatePossiblePoints(segments);
-            clearSelection();
-            render();
-            refreshLogs();
-            setStatus('Отрезок удалён (отмена)');
-        }
-    } else if (last.type === 'delete') {
-        segments.push(last.segment);
-        updatePossiblePoints(segments);
-        clearSelection();
-        render();
-        refreshLogs();
-        setStatus('Отрезок восстановлен (отмена)');
-    } else if (last.type === 'move') {
-        segments.splice(0, segments.length, ...last.oldSegments);
-        updatePossiblePoints(segments);
-        clearSelection();
-        render();
-        refreshLogs();
-        setStatus('Перемещение отменено');
-    }
-    if (typeof onDrawingChanged === 'function') onDrawingChanged();
-}
-
-export function getSegments() { return segments; }
-export let onDrawingChanged = null;
-export function setOnDrawingChanged(callback) { onDrawingChanged = callback; }
-export function redraw() { updatePossiblePoints(segments); render(); refreshLogs(); }
 `
 };
 
-// ===== ЗАПИСЬ ВСЕХ ФАЙЛОВ =====
-console.log('🔄 Обновление drawing.js...');
-for (const [filePath, content] of Object.entries(files)) {
-    const fullPath = path.join(PROJECT_DIR, filePath);
-    const dir = path.dirname(fullPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(fullPath, content, 'utf8');
-    console.log('✅ ' + filePath);
-}
-console.log('\n🎉 Готово! Запустите node server.js и проверьте:');
-console.log('   - Первый клик по отрезку выделяет его');
-console.log('   - Повторный клик снимает выделение и скрывает кнопку удаления');
-console.log('   - Перетаскивание выделенного отрезка работает (выделение сохраняется)');
+// Запись только ui.js (остальные файлы не трогаем)
+const filePath = 'src/scripts/ui.js';
+const fullPath = path.join(PROJECT_DIR, filePath);
+const dir = path.dirname(fullPath);
+if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+fs.writeFileSync(fullPath, files[filePath], 'utf8');
+console.log('✅ ' + filePath);
+console.log('\n🎉 ui.js обновлён с отладкой. Запустите node server.js, нажмите «Точки» и покажите логи консоли.');

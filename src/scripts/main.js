@@ -2,8 +2,9 @@ import { initCanvas, canvas } from './canvas.js';
 import {
     initUI,
     setStatus, setResult, clearAnalysis, setAnalysis,
-    startHintTimer, hintBar, hintBtn, clearBtn, undoBtn, checkBtn, deleteBtn,
-    getActivePointBtn, disablePointBtn, enablePointBtn, resetAllButtons, setActivePointBtn
+    startHintTimer, hintBar, hintBtn, clearBtn, undoBtn, checkBtn,
+    pointerBtn, lineBtn, pointsBtn, eraserBtn, pointButtonsContainer,
+    getActivePointBtn, setActivePointBtn, disablePointBtn, enablePointBtn, resetAllButtons
 } from './ui.js';
 import { lessons, tasks } from './taskConfig.js';
 import {
@@ -14,8 +15,9 @@ import {
 import {
     attachEvents, detachEvents, clearDrawing,
     undoLastAction, getSegments, setOnDrawingChanged, redraw,
-    deleteSelectedSegment
+    setTool, setAllowedLetters
 } from './drawing.js';
+import { namedPoints } from './points.js';
 
 console.log('🚀 main.js загружен!');
 
@@ -49,12 +51,10 @@ function navigateTo(section) {
     }
     updateSidebarActive(section);
 }
-
 function showIntro() {
     currentView = 'intro'; currentTaskId = null;
     document.getElementById('dynamic-content').innerHTML = '<h2>Добро пожаловать!</h2><p>Эта программа поможет вам освоить геометрию «с нуля» или исправить трудности.</p>';
 }
-
 function showBlockMenu() {
     currentView = 'block1'; currentTaskId = null;
     let html = '<h2>Блок 1. Учимся рисовать первичные чертежи</h2><ul>';
@@ -64,7 +64,6 @@ function showBlockMenu() {
     html += '</ul>';
     document.getElementById('dynamic-content').innerHTML = html;
 }
-
 function showLessonMenu(lessonId) {
     currentView = lessonId; currentTaskId = null;
     const lesson = lessons[lessonId];
@@ -77,14 +76,12 @@ function showLessonMenu(lessonId) {
     html += '</ul>';
     document.getElementById('dynamic-content').innerHTML = html;
 }
-
 function showLessonIntro(lessonId) {
     currentView = lessonId + '-intro'; currentTaskId = null;
     const lesson = lessons[lessonId];
     if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; }
     document.getElementById('dynamic-content').innerHTML = '<h2>' + lesson.title + '</h2>' + (lesson.intro || '');
 }
-
 function showTask(taskId) {
     currentView = taskId;
     let taskConfigId = null;
@@ -95,8 +92,11 @@ function showTask(taskId) {
     if (!taskConfigId) { document.getElementById('dynamic-content').innerHTML = '<p>Задание не найдено.</p>'; return; }
     currentTaskId = taskConfigId;
 
+    const taskDef = tasks[taskConfigId];
+    const letters = taskDef.letters || [];
+
     const taskTitle = getTaskTitle(taskId);
-    const html = generateTaskHTML(taskTitle);
+    const html = generateTaskHTML(taskTitle, letters);
     document.getElementById('dynamic-content').innerHTML = html;
 
     const canvasEl = document.getElementById('lesson-canvas');
@@ -112,16 +112,30 @@ function showTask(taskId) {
             clearDrawing();
         }
         attachEvents();
+
+        if (letters.length > 0) {
+            setAllowedLetters(letters);
+            if (pointsBtn) pointsBtn.style.display = 'inline-block';
+            if (pointButtonsContainer) pointButtonsContainer.style.display = 'none';
+        } else {
+            if (pointsBtn) pointsBtn.style.display = 'none';
+            if (pointButtonsContainer) pointButtonsContainer.style.display = 'none';
+        }
+        setTool('pointer');
+
         if (clearBtn) clearBtn.onclick = clearDrawing;
         if (undoBtn) undoBtn.onclick = undoLastAction;
         if (checkBtn) checkBtn.onclick = handleCheck;
         if (hintBtn) hintBtn.onclick = handleHint;
-        if (deleteBtn) deleteBtn.onclick = deleteSelectedSegment;
+        if (pointerBtn) pointerBtn.onclick = () => setTool('pointer');
+        if (lineBtn) lineBtn.onclick = () => setTool('line');
+        if (pointsBtn) pointsBtn.onclick = () => setTool('point');
+        if (eraserBtn) eraserBtn.onclick = () => setTool('eraser');
+
         initHintTimer();
         redraw();
     }
 }
-
 function getTaskTitle(taskId) {
     for (const lesson of Object.values(lessons)) {
         const task = lesson.tasks.find(t => t.id === taskId);
@@ -129,40 +143,46 @@ function getTaskTitle(taskId) {
     }
     return 'Задание';
 }
-
-function generateTaskHTML(title) {
+function generateTaskHTML(title, letters) {
+    const pointsBtnHtml = letters.length > 0 ? '<button class="pointsBtn">🔤 Точки</button>' : '';
+    const containerHtml = '<div class="point-buttons-container" id="pointButtonsContainer"></div>';
     return '<div class="header">' +
         '<h1 class="task-title">' + title + '</h1>' +
-        '<h2 class="task-subtitle">Нарисуйте два пересекающихся отрезка</h2>' +
+        '<h2 class="task-subtitle">' + (letters.length ? 'Постройте отрезки и обозначьте вершины' : 'Нарисуйте два пересекающихся отрезка') + '</h2>' +
         '</div>' +
         '<div class="workspace">' +
-        '<div class="left-buttons"></div>' +
+        '<div class="left-buttons">' +
+        '<button class="undoBtn">↩️ Отменить</button>' +
+        '<button class="clearBtn">🧹 Очистить всё</button>' +
+        '<button class="pointerBtn active">🖱️ Указатель</button>' +
+        '<button class="eraserBtn">🧽 Ластик</button>' +
+        '<button class="lineBtn">📏 Линия</button>' +
+        pointsBtnHtml +
+        containerHtml +
+        '</div>' +
         '<div class="canvas-wrapper">' +
         '<canvas id="lesson-canvas" width="800" height="600"></canvas>' +
         '<div class="info" id="status">…</div>' +
         '<div class="result-area" id="resultArea"></div>' +
         '</div>' +
         '<div class="right-buttons">' +
-        '<button class="undoBtn">↩️ Отменить</button>' +
-        '<button class="clearBtn">🧹 Очистить всё</button>' +
         '<button class="checkBtn">✅ Проверить</button>' +
         '<button class="hintBtn" disabled>💡 Подсказка (30)</button>' +
         '<div class="hintProgress"><div class="hintBar"></div></div>' +
-        '<button id="deleteSegmentBtn" style="display:none; background:#e74c3c; margin-top:10px;">🗑️ Удалить отрезок</button>' +
         '</div>' +
         '<div class="right-panel">' +
         '<div class="log-section"><h2>📍 Возможные точки</h2><ul class="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul></div>' +
+        (letters.length ? '<div class="log-section"><h2>📌 Именованные точки</h2><ul class="pointLogList"><li class="empty-log">Пока нет точек</li></ul></div>' : '') +
         '<div class="log-section"><h2>📋 Отрезки</h2><ul class="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul></div>' +
         '<div class="log-section"><h2>🧩 Производные отрезки</h2><ul class="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul></div>' +
         '<div class="log-section"><h2>🔍 Анализ чертежа</h2><ul class="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul></div>' +
         '</div>' +
         '</div>';
 }
-
 function handleCheck() {
     if (!currentTaskId || !tasks[currentTaskId]) return;
-    const segments = getSegments();
-    const { result, analysis } = tasks[currentTaskId].check(segments);
+    const taskDef = tasks[currentTaskId];
+    const { result, analysis } = taskDef.check(getSegments(), namedPoints);
     setResult(result);
     setAnalysis(analysis);
     if (result.includes('✅') && currentView) {
@@ -170,19 +190,16 @@ function handleCheck() {
         if (added) { updateSidebarProgress(); setStatus('✅ Задача выполнена! Урок отмечен как пройденный.'); }
     }
 }
-
 function handleHint() {
     if (!currentTaskId || !tasks[currentTaskId]) return;
     const { result, analysis } = tasks[currentTaskId].hint(getSegments());
     setResult(result);
     setAnalysis(analysis);
 }
-
 function initHintTimer() {
     if (!hintBar || !hintBtn) return;
     startHintTimer(2, () => {}, () => console.log('Подсказка доступна'));
 }
-
 function updateSidebarProgress() {
     document.querySelectorAll('.sidebar-menu a[data-task]').forEach(a => {
         const taskId = a.dataset.task;
@@ -190,7 +207,6 @@ function updateSidebarProgress() {
         else a.classList.remove('completed');
     });
 }
-
 function buildSidebarMenu() {
     const menu = document.getElementById('sidebar-menu');
     menu.innerHTML = '';
@@ -234,14 +250,12 @@ function buildSidebarMenu() {
         });
     });
 }
-
 function updateSidebarActive(section) {
     document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
     const link = document.querySelector('[data-section="' + section + '"]');
     if (link) link.classList.add('active');
     updateSidebarProgress();
 }
-
 document.getElementById('dynamic-content').addEventListener('click', (e) => {
     const target = e.target.closest('a[data-section]');
     if (target) {

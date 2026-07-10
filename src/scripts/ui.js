@@ -1,5 +1,6 @@
 export let statusEl, resultArea, possiblePointLog, pointLogList, segmentLogList, derivedSegmentLog, analysisLog;
-export let pointBtns, clearBtn, undoBtn, checkBtn, hintBtn, hintBar, deleteBtn;
+export let pointBtns, clearBtn, undoBtn, checkBtn, hintBtn, hintBar;
+export let pointerBtn, lineBtn, pointsBtn, eraserBtn, pointButtonsContainer;
 
 export function initUI(prefix) {
     statusEl = document.getElementById('status');
@@ -15,7 +16,12 @@ export function initUI(prefix) {
     checkBtn = document.querySelector('.checkBtn');
     hintBtn = document.querySelector('.hintBtn');
     hintBar = document.querySelector('.hintBar');
-    deleteBtn = document.getElementById('deleteSegmentBtn');
+    pointerBtn = document.querySelector('.pointerBtn');
+    lineBtn = document.querySelector('.lineBtn');
+    pointsBtn = document.querySelector('.pointsBtn');
+    eraserBtn = document.querySelector('.eraserBtn');
+    pointButtonsContainer = document.getElementById('pointButtonsContainer');
+    console.log('initUI: pointButtonsContainer =', pointButtonsContainer);
 }
 
 export function setStatus(text) { if (statusEl) statusEl.innerHTML = text; }
@@ -111,10 +117,67 @@ export function startHintTimer(duration, onTick, onComplete) {
     }, 1000);
 }
 
-export function showDeleteButton() {
-    if (deleteBtn) deleteBtn.style.display = 'inline-block';
+// Инструменты
+export function setPointerActive() {
+    if (pointerBtn) pointerBtn.classList.add('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+}
+export function setLineActive() {
+    if (lineBtn) lineBtn.classList.add('active');
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+}
+export function setPointsActive() {
+    console.log('setPointsActive вызвана');
+    if (pointsBtn) pointsBtn.classList.add('active');
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) {
+        pointButtonsContainer.classList.add('visible');
+        pointButtonsContainer.style.display = 'flex';   // принудительно
+        console.log('Контейнер точек: classList=', pointButtonsContainer.classList);
+        console.log('Контейнер точек: style.display=', pointButtonsContainer.style.display);
+        console.log('Контейнер точек: размеры', pointButtonsContainer.offsetWidth, pointButtonsContainer.offsetHeight);
+        console.log('Контейнер точек: children=', pointButtonsContainer.children.length);
+    } else {
+        console.error('pointButtonsContainer не найден!');
+    }
+}
+export function setEraserActive() {
+    if (eraserBtn) eraserBtn.classList.add('active');
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+}
+export function resetTools() {
+    if (pointerBtn) pointerBtn.classList.remove('active');
+    if (lineBtn) lineBtn.classList.remove('active');
+    if (pointsBtn) pointsBtn.classList.remove('active');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
 }
 
-export function hideDeleteButton() {
-    if (deleteBtn) deleteBtn.style.display = 'none';
+export function populatePointButtons(letters) {
+    console.log('populatePointButtons вызвана с буквами:', letters);
+    if (!pointButtonsContainer) {
+        console.error('populatePointButtons: контейнер не найден!');
+        return;
+    }
+    pointButtonsContainer.innerHTML = '';
+    letters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.className = 'point-btn';
+        btn.dataset.label = letter;
+        btn.textContent = letter;
+        pointButtonsContainer.appendChild(btn);
+    });
+    pointBtns = document.querySelectorAll('.point-btn');
+    console.log('Добавлены кнопки:', letters, 'всего кнопок:', pointButtonsContainer.children.length);
 }
