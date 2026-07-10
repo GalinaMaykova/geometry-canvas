@@ -3,82 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Равенство треугольников</title>
+    <title>Справиться с математикой. Осваиваем геометрию</title>
     <link rel="stylesheet" href="src/styles/main.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1 class="task-title">
-                Отрезки AE и DC пересекаются в точке B,<br>
-                являющейся серединой каждого из них.
-            </h1>
-            <h2 class="task-subtitle">Докажите, что треугольники ABC и EBD равны.</h2>
-        </div>
-
-        <div class="workspace">
-            <!-- Левая колонка: кнопки A-E -->
-            <div class="left-buttons">
-                <button class="point-btn" data-label="A">A</button>
-                <button class="point-btn" data-label="B">B</button>
-                <button class="point-btn" data-label="C">C</button>
-                <button class="point-btn" data-label="D">D</button>
-                <button class="point-btn" data-label="E">E</button>
-            </div>
-
-            <!-- Центр: холст + статус -->
-            <div class="canvas-wrapper">
-                <canvas id="canvas" width="800" height="600"></canvas>
-                <div class="info" id="status">…</div>
-                <div class="result-area" id="resultArea"></div>
-            </div>
-
-            <!-- Правая колонка: кнопки управления -->
-            <div class="right-buttons">
-                <button id="undoBtn">↩️ Отменить</button>
-                <button id="clearBtn">🧹 Очистить всё</button>
-                <button id="checkBtn">✅ Проверить</button>
-                <button id="hintBtn" disabled>💡 Подсказка (30)</button>
-                <div id="hintProgress" style="width:100%; height:4px; background:#eee; border-radius:2px; margin-top:4px;">
-                    <div id="hintBar" style="width:0%; height:100%; background:#f39c12; border-radius:2px;"></div>
-                </div>
-            </div>
-
-            <!-- Правая панель: логи и анализ -->
-            <div class="right-panel">
-                <div class="log-section">
-                    <h2>📍 Возможные точки</h2>
-                    <ul id="possiblePointLog">
-                        <li class="empty-log">Пока нет возможных точек</li>
+    <div class="app-container">
+        <!-- Левая боковая панель -->
+        <nav class="sidebar">
+            <div class="sidebar-header">📐 Геометрия</div>
+            <ul class="sidebar-menu">
+                <li><a href="#" data-section="intro">Введение</a></li>
+                <li>
+                    <a href="#" data-section="block1" class="block-title">Блок 1. Учимся рисовать первичные чертежи</a>
+                    <ul class="submenu">
+                        <li><a href="#" data-section="lesson1-1">Занятие 1. Знакомство с редактором</a></li>
+                        <li><a href="#" data-section="lesson1-2">Занятие 2. Самостоятельный чертёж</a></li>
                     </ul>
-                </div>
-                <div class="log-section">
-                    <h2>📌 Реальные точки (A-E)</h2>
-                    <ul id="pointLogList">
-                        <li class="empty-log">Пока нет точек</li>
-                    </ul>
-                </div>
-               <div class="log-section">
-                    <h2>📋 Отрезки</h2>
-                    <ul id="segmentLogList">
-                        <li class="empty-log">Пока нет отрезков</li>
-                </ul>
-                </div>
-                <div class="log-section">
-                    <h2>🧩 Производные отрезки</h2>
-                    <ul id="derivedSegmentLog">
-                        <li class="empty-log">Пока нет производных отрезков</li>
-                    </ul>
-                </div>
-                <div class="log-section">
-                    <h2>🔍 Анализ чертежа</h2>
-                    <ul id="analysisLog">
-                        <li class="empty-log">Нажми «Проверить»</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Основная область -->
+        <main class="content">
+            <div id="dynamic-content"></div>
+        </main>
     </div>
+
     <script type="module" src="src/scripts/main.js"></script>
 </body>
 </html>
