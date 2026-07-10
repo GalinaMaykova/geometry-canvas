@@ -78,9 +78,7 @@ server.listen(PORT, () => {
     <div class="app-container">
         <nav class="sidebar">
             <div class="sidebar-header">📐 Геометрия</div>
-            <ul class="sidebar-menu" id="sidebar-menu">
-                <!-- Меню заполняется динамически -->
-            </ul>
+            <ul class="sidebar-menu" id="sidebar-menu"></ul>
         </nav>
         <main class="content">
             <div id="dynamic-content"></div>
@@ -547,7 +545,7 @@ export function drawAllSegments() {
     ctx.restore();
 }`,
 
-    // ===== ui.js (исправлен – есть экспорт initUI) =====
+    // ===== ui.js (исправлен, теперь точно есть initUI) =====
     'src/scripts/ui.js':
 `export let statusEl, resultArea, possiblePointLog, pointLogList, segmentLogList, derivedSegmentLog, analysisLog;
 export let pointBtns, clearBtn, undoBtn, checkBtn, hintBtn, hintBar;
@@ -803,7 +801,7 @@ export function loadAppState() {
     }
 }`,
 
-    // ===== main.js (обновлён, импорт initUI теперь работает) =====
+    // ===== main.js =====
     'src/scripts/main.js':
 `import { initCanvas, canvas, ctx, W, H, getMousePos } from './canvas.js';
 import { drawGrid, snapToGrid, isInsideCanvas } from './grid.js';
@@ -1280,4 +1278,4 @@ for (const [filePath, content] of Object.entries(files)) {
     console.log('✅ ' + filePath);
 }
 console.log('\n🎉 Готово! Запустите node server.js для локального теста.');
-console.log('   После проверки выполните git add . && git commit -m "Исправлен ui.js и main.js" && git push');
+console.log('   После проверки выполните git add . && git commit -m "Полное обновление: ui.js с initUI" && git push');
