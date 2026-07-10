@@ -1,14 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const PROJECT_DIR = __dirname;
-
-const files = {
-    // ===== server.js, index.html, main.css, canvas.js, grid.js, possiblePoints.js, points.js, segments.js, ui.js, taskConfig.js, progress.js, main.js =====
-    // Они полностью идентичны последней полной версии. Я приведу только обновлённый drawing.js.
-
-    'src/scripts/drawing.js':
-`import { canvas, ctx, W, H, getMousePos } from './canvas.js';
+import { canvas, ctx, W, H, getMousePos } from './canvas.js';
 import { drawGrid, snapToGrid, isInsideCanvas } from './grid.js';
 import {
     possiblePoints, updatePossiblePoints, findClosestPossiblePoint,
@@ -438,19 +428,3 @@ export function getSegments() { return segments; }
 export let onDrawingChanged = null;
 export function setOnDrawingChanged(callback) { onDrawingChanged = callback; }
 export function redraw() { updatePossiblePoints(segments); render(); refreshLogs(); }
-`
-};
-
-// ===== ЗАПИСЬ ВСЕХ ФАЙЛОВ =====
-console.log('🔄 Обновление drawing.js...');
-for (const [filePath, content] of Object.entries(files)) {
-    const fullPath = path.join(PROJECT_DIR, filePath);
-    const dir = path.dirname(fullPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(fullPath, content, 'utf8');
-    console.log('✅ ' + filePath);
-}
-console.log('\n🎉 Готово! Запустите node server.js и проверьте:');
-console.log('   - Первый клик по отрезку выделяет его');
-console.log('   - Повторный клик снимает выделение и скрывает кнопку удаления');
-console.log('   - Перетаскивание выделенного отрезка работает (выделение сохраняется)');
