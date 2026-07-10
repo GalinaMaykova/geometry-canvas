@@ -45,6 +45,7 @@ let eraserHoverTarget = null;
 const POINT_GRAB_RADIUS = 12;
 const SEGMENT_GRAB_RADIUS = 10;
 
+// ===================== Вспомогательные функции =====================
 function getPointFullName(x, y) {
     let tId = '?', letter = null;
     for (let pp of possiblePoints) if (Math.abs(pp.x - x) < 1 && Math.abs(pp.y - y) < 1) { tId = pp.id; break; }
@@ -254,7 +255,6 @@ function onMouseDown(e) {
 
     dragMode = 'none';
 }
-
 function onMouseMove(e) {
     const pos = getMousePos(e);
     const px = pos.x, py = pos.y;
@@ -281,13 +281,11 @@ function onMouseMove(e) {
 
     if (dragMode === 'point' && dragPoint) {
         const snapX = snapToGrid(px), snapY = snapToGrid(py);
-        // Двигаем концы отрезков
         for (let state of dragOriginalSegmentStates) {
             const seg = state.seg;
             if (Math.abs(seg.x1 - dragPoint.x) < 1 && Math.abs(seg.y1 - dragPoint.y) < 1) { seg.x1 = snapX; seg.y1 = snapY; }
             if (Math.abs(seg.x2 - dragPoint.x) < 1 && Math.abs(seg.y2 - dragPoint.y) < 1) { seg.x2 = snapX; seg.y2 = snapY; }
         }
-        // Двигаем именованные точки, привязанные к этой возможной точке
         for (let np of namedPoints) {
             if (Math.abs(np.x - dragPoint.x) < 1 && Math.abs(np.y - dragPoint.y) < 1) {
                 np.x = snapX;
@@ -322,7 +320,6 @@ function onMouseMove(e) {
         render();
     }
 }
-
 function onMouseUp(e) {
     const pos = getMousePos(e);
     const px = pos.x, py = pos.y;
@@ -370,7 +367,6 @@ function onMouseUp(e) {
     dragStartPos = null; originalSegmentCoords = null; dragOriginalSegmentStates = [];
     isDragging = false; mouseDownPos = null;
 }
-
 function handleCanvasClickAt(px, py) {
     if (currentTool !== 'line') return;
     const snapX = snapToGrid(px), snapY = snapToGrid(py);
@@ -395,7 +391,6 @@ function handleCanvasClickAt(px, py) {
         setStatus('Отрезок готов!');
     }
 }
-
 function deleteSegment(seg) {
     pushHistory({ type: 'delete', segment: { ...seg } });
     const index = segments.indexOf(seg);
@@ -405,7 +400,6 @@ function deleteSegment(seg) {
         setStatus('Отрезок удалён');
     }
 }
-
 function deleteNamedPoint(np) {
     pushHistory({ type: 'deleteNamedPoint', point: { ...np } });
     const index = namedPoints.indexOf(np);
@@ -416,7 +410,6 @@ function deleteNamedPoint(np) {
     }
 }
 
-// Публичные методы
 export function setTool(tool) {
     if (tool === currentTool) tool = 'pointer';
     currentTool = tool;
@@ -431,7 +424,6 @@ export function setTool(tool) {
 
     render();
 }
-
 export function setAllowedLetters(letters) {
     allowedLetters = letters;
     populatePointButtons(letters);
@@ -457,24 +449,25 @@ export function setAllowedLetters(letters) {
         });
     });
 }
-
 export function attachEvents() {
     if (!canvas) return;
     canvas.addEventListener('mousedown', onMouseDown);
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mouseup', onMouseUp);
 }
-
 export function detachEvents() {
     if (!canvas) return;
     canvas.removeEventListener('mousedown', onMouseDown);
     canvas.removeEventListener('mousemove', onMouseMove);
     canvas.removeEventListener('mouseup', onMouseUp);
 }
-
 export function clearDrawing() {
-    clearSegments(); clearNamedPoints(); clearPossiblePoints();
-    clearSegmentLog(); clearNamedPointLog(); clearAnalysis();
+    clearSegments();
+    clearNamedPoints();
+    clearPossiblePoints();
+    clearSegmentLog();
+    clearNamedPointLog();
+    clearAnalysis();
     updatePossiblePointLog([]);
     startPoint = null; endPoint = null;
     actionHistory = [];
@@ -485,7 +478,6 @@ export function clearDrawing() {
     setTool('pointer');
     render();
 }
-
 export function undoLastAction() {
     if (startPoint) { startPoint = null; endPoint = null; setStatus('Сброшено'); render(); return; }
     if (!actionHistory.length) { setStatus('Нет действий для отмены'); return; }
@@ -509,15 +501,7 @@ export function undoLastAction() {
     }
     if (typeof onDrawingChanged === 'function') onDrawingChanged();
 }
-
 export function getSegments() { return segments; }
 export let onDrawingChanged = null;
 export function setOnDrawingChanged(callback) { onDrawingChanged = callback; }
 export function redraw() { updatePossiblePoints(segments); render(); refreshLogs(); }
-
-// Обновление состояния кнопок точек (блокировка уже использованных букв)
-export function updatePointButtonsState() {
-    for (let np of namedPoints) {
-        disablePointBtn(np.label);
-    }
-}

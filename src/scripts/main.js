@@ -15,7 +15,7 @@ import {
 import {
     attachEvents, detachEvents, clearDrawing,
     undoLastAction, getSegments, setOnDrawingChanged, redraw,
-    setTool, setAllowedLetters, updatePointButtonsState
+    setTool, setAllowedLetters
 } from './drawing.js';
 import { namedPoints } from './points.js';
 
@@ -34,6 +34,7 @@ setOnDrawingChanged(() => {
     saveAppStateToStorage(appState);
 });
 
+// ===================== Навигация =====================
 function navigateTo(section) {
     detachEvents();
     if (currentView && currentTaskId) {
@@ -109,14 +110,18 @@ function showTask(taskId) {
     if (canvasEl) {
         initCanvas(canvasEl);
         initUI('lesson');
+
+        getSegments().splice(0, getSegments().length);
+        namedPoints.splice(0, namedPoints.length);
+
         const state = appState[taskId];
         if (state) {
             if (state.segments) {
                 const segs = getSegments();
-                segs.splice(0, segs.length, ...state.segments);
+                segs.push(...state.segments);
             }
             if (state.namedPoints) {
-                namedPoints.splice(0, namedPoints.length, ...state.namedPoints);
+                namedPoints.push(...state.namedPoints);
             }
             redraw();
         } else {
@@ -126,7 +131,6 @@ function showTask(taskId) {
 
         if (letters.length > 0) {
             setAllowedLetters(letters);
-            updatePointButtonsState();
             if (pointsBtn) pointsBtn.style.display = 'inline-block';
             if (pointButtonsContainer) pointButtonsContainer.style.display = 'none';
         } else {
