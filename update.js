@@ -1,1300 +1,1126 @@
-// Подключаем модули Node.js для работы с файловой системой и путями
-const fs = require('fs');   // модуль для работы с файлами (чтение, запись, создание папок)
-const path = require('path'); // модуль для построения правильных путей к файлам
+const fs = require('fs');
+const path = require('path');
 
-// Определяем папку, в которой лежит сам скрипт (корень geometry-canvas)
-const PROJECT_DIR = __dirname;  // __dirname – это папка, где находится update.js
+const PROJECT_DIR = __dirname;
 
-// Все модули, которые мы будем создавать/обновлять. Ключ – относительный путь к файлу, значение – его содержимое.
 const files = {
+    // ===== server.js =====
+    'server.js':
+`const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
-    // ===== 1. canvas.js =====
-    // Модуль для работы с холстом: получение элемента <canvas> и его контекста,
-    // а также функция перевода координат мыши в координаты холста.
+const PORT = 3000;
+const ROOT_DIR = __dirname;
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon'
+};
+
+const server = http.createServer((req, res) => {
+  let urlPath = req.url.split('?')[0];
+  urlPath = decodeURIComponent(urlPath);
+
+  if (urlPath.includes('..')) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
+  if (urlPath.endsWith('/')) {
+    urlPath += 'index.html';
+  }
+
+  const filePath = path.join(ROOT_DIR, urlPath);
+  const ext = path.extname(filePath).toLowerCase();
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('404 Not Found');
+      } else {
+        res.writeHead(500);
+        res.end('Internal Server Error');
+      }
+      return;
+    }
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(data);
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(\`✅ Сервер запущен: http://localhost:\${PORT}\`);
+  console.log('   Для остановки нажмите Ctrl+C');
+});
+`,
+
+    // ===== index.html =====
+    'index.html':
+`<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Справиться с математикой. Осваиваем геометрию</title>
+    <link rel="stylesheet" href="src/styles/main.css">
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">📐 Геометрия</div>
+            <ul class="sidebar-menu" id="sidebar-menu"></ul>
+        </nav>
+        <main class="content">
+            <div id="dynamic-content"></div>
+        </main>
+    </div>
+    <script type="module" src="src/scripts/main.js"></script>
+</body>
+</html>`,
+
+    // ===== main.css =====
+    'src/styles/main.css':
+`* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f0f0; }
+.app-container { display: flex; min-height: 100vh; }
+.sidebar { width: 280px; background: #2c3e50; color: white; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar-header { font-size: 20px; font-weight: bold; padding: 0 20px 20px; border-bottom: 1px solid #4a6278; margin-bottom: 10px; }
+.sidebar-menu { list-style: none; padding: 0; margin: 0; }
+.sidebar-menu li a { display: block; padding: 10px 20px; color: #ecf0f1; text-decoration: none; transition: background 0.2s; }
+.sidebar-menu li a:hover { background: #34495e; }
+.sidebar-menu li a.active { background: #3498db; color: white; font-weight: bold; }
+.sidebar-menu li a.completed::after { content: " ✅"; font-size: 12px; }
+.block-title { font-weight: bold; margin-top: 10px; }
+.submenu { list-style: none; padding-left: 20px; margin: 0; }
+.submenu li a { font-size: 14px; padding: 8px 20px; }
+.content { flex: 1; padding: 30px; background: white; margin: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow-y: auto; }
+.header { text-align: center; margin-bottom: 20px; }
+.task-title { font-size: 24px; font-weight: 600; color: #2c3e50; margin: 0; padding: 10px; background: #ecf0f1; border-radius: 8px; line-height: 1.4; }
+.task-subtitle { font-size: 18px; font-weight: 500; color: #e74c3c; margin: 8px 0 0 0; padding: 10px; background: #ecf0f1; border-radius: 8px; line-height: 1.4; }
+.workspace { display: flex; gap: 20px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.left-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.point-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #3498db; background: white; color: #3498db; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+.point-btn:hover:not(:disabled) { background: #3498db; color: white; }
+.point-btn.active { background: #f39c12; border-color: #f39c12; color: white; }
+.point-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #bdc3c7; border-color: #95a5a6; }
+.canvas-wrapper { display: flex; flex-direction: column; align-items: center; }
+canvas { border: 1px solid #ccc; cursor: crosshair; display: block; background: white; user-select: none; }
+.info { margin-top: 10px; font-size: 14px; color: #555; min-height: 24px; }
+.right-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.right-buttons button { padding: 6px 12px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer; transition: background 0.2s; font-size: 14px; min-width: 100px; }
+.right-buttons button:hover:not(:disabled) { background: #0056b3; }
+.right-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
+.undoBtn { background: #f39c12; } .undoBtn:hover:not(:disabled) { background: #d68910; }
+.clearBtn { background: #e74c3c; } .clearBtn:hover:not(:disabled) { background: #c0392b; }
+.checkBtn { background: #27ae60; } .checkBtn:hover:not(:disabled) { background: #229954; }
+.hintBtn { background: #8e44ad; } .hintBtn:hover:not(:disabled) { background: #7d3c98; }
+.hintProgress { width: 100%; height: 4px; background: #eee; border-radius: 2px; margin-top: 4px; }
+.hintBar { width: 0%; height: 100%; background: #f39c12; border-radius: 2px; transition: width 0.3s; }
+.right-panel { flex: 1 1 300px; min-width: 200px; display: flex; flex-direction: column; gap: 15px; }
+.log-section { background: #f8f9fa; border-radius: 8px; padding: 10px 14px; box-shadow: inset 0 0 6px rgba(0,0,0,0.05); max-height: 180px; overflow-y: auto; }
+.log-section h2 { margin-top: 0; font-size: 15px; color: #2c3e50; border-bottom: 2px solid #ddd; padding-bottom: 4px; }
+.possiblePointLog, .pointLogList, .segmentLogList, .derivedSegmentLog, .analysisLog { list-style: none; padding: 0; margin: 4px 0 0 0; font-size: 12px; font-family: 'Courier New', monospace; }
+.possiblePointLog li, .pointLogList li, .segmentLogList li, .derivedSegmentLog li, .analysisLog li { padding: 2px 0; border-bottom: 1px solid #eee; color: #2c3e50; }
+.empty-log { color: #999; font-style: italic; border-bottom: none !important; }
+.result-area { margin-top: 20px; padding: 15px 20px; background: #fef9e7; border: 2px solid #f39c12; border-radius: 8px; font-size: 20px; font-weight: bold; color: #2c3e50; min-height: 60px; width: 100%; box-sizing: border-box; }
+@media (max-width: 1100px) { .app-container { flex-direction: column; } .sidebar { width: 100%; height: auto; position: relative; } .content { margin: 10px; } }`,
+
+    // ===== canvas.js =====
     'src/scripts/canvas.js':
-`// Находим на странице элемент <canvas> по его id="canvas"
-export const canvas = document.getElementById('canvas');
-// Получаем 2D-контекст рисования – именно через него мы будем рисовать линии и фигуры
-export const ctx = canvas.getContext('2d');
-// Запоминаем ширину и высоту холста (они заданы в HTML-атрибутах width/height)
-export const W = canvas.width;
-export const H = canvas.height;
+`export let canvas = null;
+export let ctx = null;
+export let W = 0;
+export let H = 0;
 
-/**
- * Переводит координаты события мыши в координаты на холсте,
- * учитывая возможное масштабирование CSS.
- * @param {MouseEvent} e - событие мыши
- * @returns {{x: number, y: number}} координаты на холсте
- */
+export function initCanvas(canvasElement) {
+    canvas = canvasElement;
+    ctx = canvas.getContext('2d');
+    W = canvas.width;
+    H = canvas.height;
+}
+
 export function getMousePos(e) {
-    // Получаем положение и размеры холста относительно окна браузера
     const rect = canvas.getBoundingClientRect();
-    // Вычисляем коэффициент масштабирования по горизонтали (если CSS-размер отличается от фактического)
     const scaleX = canvas.width / rect.width;
-    // То же по вертикали
     const scaleY = canvas.height / rect.height;
-    // Возвращаем объект с координатами, где
-    // x = (координата мыши в окне – левый край холста) * масштаб
     return {
         x: (e.clientX - rect.left) * scaleX,
         y: (e.clientY - rect.top) * scaleY
     };
 }`,
 
-    // ===== 2. grid.js =====
-    // Модуль сетки: привязка к узлам, проверка границ и рисование сетки.
+    // ===== grid.js =====
     'src/scripts/grid.js':
-`// Импортируем контекст и размеры холста из canvas.js
-import { ctx, W, H } from './canvas.js';
-
-// Размер одной клетки сетки (в пикселях)
+`import { ctx, W, H } from './canvas.js';
 export const GRID_SIZE = 30;
-
-/**
- * Привязывает координату к ближайшему узлу сетки (округляет).
- * @param {number} coord - исходная координата (например, координата клика)
- * @returns {number} координата, кратная GRID_SIZE
- */
-export function snapToGrid(coord) {
-    // Делим на размер клетки, округляем до целого и умножаем обратно
-    return Math.round(coord / GRID_SIZE) * GRID_SIZE;
-}
-
-/**
- * Проверяет, находится ли точка внутри холста.
- * @param {number} x – координата X
- * @param {number} y – координата Y
- * @returns {boolean} true, если точка внутри, иначе false
- */
-export function isInsideCanvas(x, y) {
-    return x >= 0 && x <= W && y >= 0 && y <= H;
-}
-
-/**
- * Рисует фоновую сетку на холсте (серые линии).
- */
+export function snapToGrid(coord) { return Math.round(coord / GRID_SIZE) * GRID_SIZE; }
+export function isInsideCanvas(x, y) { return x >= 0 && x <= W && y >= 0 && y <= H; }
 export function drawGrid() {
-    // Сохраняем текущее состояние контекста (цвета, линии и т.д.)
+    if (!ctx) return;
     ctx.save();
-    // Устанавливаем цвет линий сетки – светло-серый
-    ctx.strokeStyle = '#ddd';
-    // Толщина линии – 1 пиксель
-    ctx.lineWidth = 1;
-    // Рисуем вертикальные линии: x от 0 до ширины холста с шагом GRID_SIZE
-    for (let x = 0; x <= W; x += GRID_SIZE) {
-        ctx.beginPath();          // начинаем новый путь
-        ctx.moveTo(x, 0);        // перемещаем "карандаш" в точку (x, 0)
-        ctx.lineTo(x, H);        // проводим линию до (x, H)
-        ctx.stroke();            // отрисовываем линию
-    }
-    // Аналогично горизонтальные линии: y от 0 до высоты холста
-    for (let y = 0; y <= H; y += GRID_SIZE) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(W, y);
-        ctx.stroke();
-    }
-    // Восстанавливаем предыдущее состояние контекста (чтобы не сбить другие настройки рисования)
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
     ctx.restore();
 }`,
 
-    // ===== 3. possiblePoints.js =====
-    // Модуль "возможных точек": концы отрезков и точки их пересечения.
-    // Они называются T1, T2, T3... и именно к ним можно привязать именованные точки A–E.
+    // ===== possiblePoints.js =====
     'src/scripts/possiblePoints.js':
-`// Импортируем контекст (нужен для рисования возможных точек)
-import { ctx } from './canvas.js';
-
-// Массив возможных точек (каждая имеет поля id, x, y)
+`import { ctx } from './canvas.js';
 export let possiblePoints = [];
-// Счётчик для автоматической нумерации T1, T2, ...
 let nextId = 1;
-
-/**
- * Очищает список возможных точек и сбрасывает счётчик.
- */
-export function clearPossiblePoints() {
-    possiblePoints = [];
-    nextId = 1;
-}
-
-/**
- * Добавляет новую возможную точку, если рядом нет уже существующей (проверка по допуску tolerance).
- * @param {number} x – координата X
- * @param {number} y – координата Y
- * @param {number} [tolerance=1] – допустимое расстояние (по X и Y) до существующей точки
- */
+export function clearPossiblePoints() { possiblePoints = []; nextId = 1; }
 function addPossiblePoint(x, y, tolerance = 1) {
-    // Проверяем, есть ли уже точка с такими координатами (с учётом допуска)
-    for (let p of possiblePoints) {
-        if (Math.abs(p.x - x) < tolerance && Math.abs(p.y - y) < tolerance) {
-            return; // если есть – не добавляем
-        }
-    }
-    // Добавляем новую точку с идентификатором T1, T2, ...
-    possiblePoints.push({ id: 'T' + nextId, x, y });
-    nextId++; // увеличиваем счётчик для следующей точки
+    for (let p of possiblePoints) if (Math.abs(p.x - x) < tolerance && Math.abs(p.y - y) < tolerance) return;
+    possiblePoints.push({ id: 'T' + nextId, x, y }); nextId++;
 }
-
-/**
- * Перестраивает список возможных точек на основе концов отрезков и их пересечений.
- * Вызывается каждый раз, когда отрезки добавляются или удаляются.
- * @param {Array} segments – массив отрезков [{x1,y1,x2,y2}, ...]
- */
 export function updatePossiblePoints(segments) {
-    clearPossiblePoints(); // очищаем старый список
-
-    // Добавляем концы всех отрезков как возможные точки
-    for (let seg of segments) {
-        addPossiblePoint(seg.x1, seg.y1);
-        addPossiblePoint(seg.x2, seg.y2);
-    }
-
-    // Проверяем каждую пару отрезков на пересечение
+    clearPossiblePoints();
+    for (let seg of segments) { addPossiblePoint(seg.x1, seg.y1); addPossiblePoint(seg.x2, seg.y2); }
     for (let i = 0; i < segments.length; i++) {
         for (let j = i + 1; j < segments.length; j++) {
-            const p = segmentIntersection(segments[i], segments[j]); // вычисляем точку пересечения
-            if (p) {
-                addPossiblePoint(p.x, p.y); // если пересекаются, добавляем точку пересечения
-            }
+            const p = segmentIntersection(segments[i], segments[j]);
+            if (p) addPossiblePoint(p.x, p.y);
         }
     }
-
-    // Сортируем точки по их номеру (T1, T2, T3...)
     possiblePoints.sort((a, b) => parseInt(a.id.slice(1)) - parseInt(b.id.slice(1)));
 }
-
-/**
- * Вычисляет точку пересечения двух отрезков, если она есть.
- * Используется математический метод через параметры t и u.
- * @param {Object} s1 – первый отрезок {x1,y1,x2,y2}
- * @param {Object} s2 – второй отрезок
- * @returns {Object|null} {x, y} или null, если отрезки не пересекаются
- */
 function segmentIntersection(s1, s2) {
     const x1 = s1.x1, y1 = s1.y1, x2 = s1.x2, y2 = s1.y2;
     const x3 = s2.x1, y3 = s2.y1, x4 = s2.x2, y4 = s2.y2;
-
-    // Знаменатель формулы
     const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    // Если знаменатель близок к нулю – отрезки параллельны
     if (Math.abs(denom) < 1e-10) return null;
-
-    // Параметр t для первого отрезка
     const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-    // Параметр u для второго отрезка
     const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-
-    // Если оба параметра в пределах [0, 1], то отрезки пересекаются
-    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-        // Вычисляем координаты точки пересечения
-        return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
-    }
+    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
     return null;
 }
-
-/**
- * Ищет ближайшую возможную точку в радиусе maxDist от заданных координат.
- * Используется при клике, чтобы привязать именованную точку к ближайшему узлу.
- * @param {number} x – координата X клика
- * @param {number} y – координата Y клика
- * @param {number} [maxDist=25] – максимальное расстояние поиска
- * @returns {Object|null} ближайшая точка или null
- */
 export function findClosestPossiblePoint(x, y, maxDist = 25) {
     let best = null, bestDist = Infinity;
     for (let p of possiblePoints) {
         const dx = p.x - x, dy = p.y - y;
-        const dist = Math.sqrt(dx*dx + dy*dy); // евклидово расстояние
-        if (dist < bestDist && dist <= maxDist) {
-            bestDist = dist;
-            best = p;
-        }
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < bestDist && dist <= maxDist) { bestDist = dist; best = p; }
     }
     return best;
 }
-
-/**
- * Рисует все возможные точки (крестики) и подписывает их идентификаторы (T1, T2...).
- */
 export function drawPossiblePoints() {
+    if (!ctx) return;
     ctx.save();
-    ctx.strokeStyle = '#aaa';  // серый цвет для крестика
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
     for (let p of possiblePoints) {
-        const s = 4; // половинная длина линии крестика
-        // Рисуем крестик (две пересекающиеся линии)
-        ctx.beginPath();
-        ctx.moveTo(p.x - s, p.y - s);
-        ctx.lineTo(p.x + s, p.y + s);
-        ctx.moveTo(p.x + s, p.y - s);
-        ctx.lineTo(p.x - s, p.y + s);
-        ctx.stroke();
-
-        // Подписываем точку (например, T1, T2...)
-        ctx.fillStyle = '#888';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
+        const s = 4;
+        ctx.beginPath(); ctx.moveTo(p.x - s, p.y - s); ctx.lineTo(p.x + s, p.y + s);
+        ctx.moveTo(p.x + s, p.y - s); ctx.lineTo(p.x - s, p.y + s); ctx.stroke();
+        ctx.fillStyle = '#888'; ctx.font = '10px Arial'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
         ctx.fillText(p.id, p.x + 6, p.y - 2);
     }
     ctx.restore();
 }`,
 
-    // ===== 4. points.js =====
-    // Модуль для работы с именованными точками (A, B, C, D, E).
-    // Они могут быть привязаны только к возможным точкам (T1, T2...).
+    // ===== points.js =====
     'src/scripts/points.js':
 `import { ctx } from './canvas.js';
-
-// Массив именованных точек [{label: 'A', x: число, y: число}, ...]
 export let namedPoints = [];
-
-/**
- * Добавляет именованную точку с заданной буквой и координатами.
- * @param {string} label – буква точки (например 'A')
- * @param {number} x – координата X
- * @param {number} y – координата Y
- */
-export function addNamedPoint(label, x, y) {
-    namedPoints.push({ label, x, y });
-    console.log('Добавлена точка ' + label + ': (' + x + ',' + y + ')');
-}
-
-/**
- * Удаляет последнюю добавленную именованную точку (используется при отмене действия).
- * @returns {Object|null} удалённая точка или null, если массив пуст
- */
-export function removeLastNamedPoint() {
-    if (namedPoints.length > 0) {
-        const removed = namedPoints.pop();
-        console.log('Удалена точка ' + removed.label + ': (' + removed.x + ',' + removed.y + ')');
-        return removed;
-    }
-    return null;
-}
-
-/**
- * Полностью очищает список именованных точек.
- */
-export function clearNamedPoints() {
-    namedPoints = [];
-    console.log('Все именованные точки очищены');
-}
-
-/**
- * Рисует все именованные точки: чёрные кружки и букву рядом.
- */
+export function addNamedPoint(label, x, y) { namedPoints.push({ label, x, y }); }
+export function removeLastNamedPoint() { return namedPoints.length > 0 ? namedPoints.pop() : null; }
+export function clearNamedPoints() { namedPoints = []; }
 export function drawNamedPoints() {
+    if (!ctx) return;
     ctx.save();
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let p of namedPoints) {
-        // Рисуем маленький чёрный круг в точке
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = 'black';
-        ctx.fill();
-        // Подписываем букву чуть правее и выше
-        ctx.fillStyle = 'black';
-        ctx.fillText(p.label, p.x + 14, p.y - 12);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI); ctx.fillStyle = 'black'; ctx.fill();
+        ctx.fillStyle = 'black'; ctx.fillText(p.label, p.x + 14, p.y - 12);
     }
     ctx.restore();
 }`,
 
-    // ===== 5. segments.js =====
-    // Модуль для работы с отрезками: хранение, добавление, удаление и рисование.
+    // ===== segments.js =====
     'src/scripts/segments.js':
 `import { ctx } from './canvas.js';
-
-// Массив отрезков [{x1, y1, x2, y2}, ...]
 export let segments = [];
-
-/**
- * Добавляет новый отрезок.
- * @param {number} x1, y1 – координаты начала
- * @param {number} x2, y2 – координаты конца
- */
-export function addSegment(x1, y1, x2, y2) {
-    segments.push({ x1, y1, x2, y2 });
-    console.log('Добавлен отрезок: (' + x1 + ',' + y1 + ') → (' + x2 + ',' + y2 + ')');
-}
-
-/**
- * Удаляет последний добавленный отрезок (отмена действия).
- * @returns {Object|null} удалённый отрезок или null, если массив пуст
- */
-export function removeLastSegment() {
-    if (segments.length > 0) {
-        const removed = segments.pop();
-        console.log('Удалён отрезок: (' + removed.x1 + ',' + removed.y1 + ') → (' + removed.x2 + ',' + removed.y2 + ')');
-        return removed;
-    }
-    return null;
-}
-
-/**
- * Очищает массив отрезков полностью.
- */
-export function clearSegments() {
-    segments = [];
-    console.log('Все отрезки очищены');
-}
-
-/**
- * Рисует все отрезки на холсте (тёмно-синие линии толщиной 2px).
- */
+export function addSegment(x1, y1, x2, y2) { segments.push({ x1, y1, x2, y2 }); }
+export function removeLastSegment() { return segments.length > 0 ? segments.pop() : null; }
+export function clearSegments() { segments = []; }
 export function drawAllSegments() {
+    if (!ctx) return;
     ctx.save();
-    ctx.strokeStyle = '#2c3e50';  // тёмно-синий цвет
-    ctx.lineWidth = 2;
-    for (let seg of segments) {
-        ctx.beginPath();
-        ctx.moveTo(seg.x1, seg.y1);
-        ctx.lineTo(seg.x2, seg.y2);
-        ctx.stroke();
-    }
+    ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2;
+    for (let seg of segments) { ctx.beginPath(); ctx.moveTo(seg.x1, seg.y1); ctx.lineTo(seg.x2, seg.y2); ctx.stroke(); }
     ctx.restore();
 }`,
 
-    // ===== 6. ui.js =====
-    // Модуль интерфейса: управление HTML-элементами (кнопки, списки, статус).
+    // ===== ui.js =====
     'src/scripts/ui.js':
-`// Импортируем canvas, чтобы привязать к нему обработчик клика
-import { canvas } from './canvas.js';
+`export let statusEl, resultArea, possiblePointLog, pointLogList, segmentLogList, derivedSegmentLog, analysisLog;
+export let pointBtns, clearBtn, undoBtn, checkBtn, hintBtn, hintBar, deleteBtn;
 
-// Экспортируем ссылки на важные элементы DOM, чтобы другие модули могли их менять
-export const statusEl = document.getElementById('status');            // строка статуса под холстом
-export const clearBtn = document.getElementById('clearBtn');          // кнопка "Очистить"
-export const undoBtn = document.getElementById('undoBtn');            // кнопка "Отменить"
-export const checkBtn = document.getElementById('checkBtn');          // кнопка "Проверить"
-export const hintBtn = document.getElementById('hintBtn');            // кнопка "Подсказка"
-export const hintBar = document.getElementById('hintBar');            // прогресс-бар подсказки
-
-// Логи (списки в правой панели)
-export const possiblePointLog = document.getElementById('possiblePointLog');  // список возможных точек
-export const pointLogList = document.getElementById('pointLogList');          // список именованных точек
-export const segmentLogList = document.getElementById('segmentLogList');      // список отрезков
-export const derivedSegmentLog = document.getElementById('derivedSegmentLog'); // список производных отрезков
-export const analysisLog = document.getElementById('analysisLog');           // анализ чертежа
-export const resultArea = document.getElementById('resultArea');             // жёлтое поле результата
-
-// Все кнопки выбора букв (A, B, C, D, E)
-export const pointBtns = document.querySelectorAll('.point-btn');
-
-/**
- * Устанавливает HTML-содержимое строки статуса (подсказки пользователю).
- * @param {string} text – текст с HTML
- */
-export function setStatus(text) {
-    statusEl.innerHTML = text;
+export function initUI(prefix) {
+    statusEl = document.getElementById('status');
+    resultArea = document.getElementById('resultArea');
+    possiblePointLog = document.querySelector('.possiblePointLog');
+    pointLogList = document.querySelector('.pointLogList');
+    segmentLogList = document.querySelector('.segmentLogList');
+    derivedSegmentLog = document.querySelector('.derivedSegmentLog');
+    analysisLog = document.querySelector('.analysisLog');
+    pointBtns = document.querySelectorAll('.point-btn');
+    clearBtn = document.querySelector('.clearBtn');
+    undoBtn = document.querySelector('.undoBtn');
+    checkBtn = document.querySelector('.checkBtn');
+    hintBtn = document.querySelector('.hintBtn');
+    hintBar = document.querySelector('.hintBar');
+    deleteBtn = document.getElementById('deleteSegmentBtn');
 }
 
-// Далее функции обновления каждого лога, очистки и т.д. Все они устроены похоже:
-// 1. Очищаем содержимое элемента
-// 2. Если данных нет – показываем сообщение-заглушку
-// 3. Иначе создаём элементы <li> и наполняем их информацией
-
-export function updatePossiblePointLog(possiblePoints) {
+export function setStatus(text) { if (statusEl) statusEl.innerHTML = text; }
+export function updatePossiblePointLog(points) {
+    if (!possiblePointLog) return;
     possiblePointLog.innerHTML = '';
-    if (possiblePoints.length === 0) {
-        possiblePointLog.innerHTML = '<li class="empty-log">Пока нет возможных точек</li>';
-        return;
-    }
-    for (let p of possiblePoints) {
-        const li = document.createElement('li');
-        li.textContent = p.id + ' (' + Math.round(p.x) + ', ' + Math.round(p.y) + ')';
-        possiblePointLog.appendChild(li);
-    }
+    if (!points.length) { possiblePointLog.innerHTML = '<li class="empty-log">Пока нет возможных точек</li>'; return; }
+    for (let p of points) { const li = document.createElement('li'); li.textContent = p.id + ' (' + Math.round(p.x) + ', ' + Math.round(p.y) + ')'; possiblePointLog.appendChild(li); }
 }
-
 export function addNamedPointLog(label, x, y) {
-    const empty = pointLogList.querySelector('.empty-log');
-    if (empty) empty.remove();
+    if (!pointLogList) return;
+    const empty = pointLogList.querySelector('.empty-log'); if (empty) empty.remove();
     const li = document.createElement('li');
-    const now = new Date();
-    const time = now.toLocaleTimeString();
-    li.textContent = '[' + time + '] ' + label + ' (' + Math.round(x) + ', ' + Math.round(y) + ')';
-    pointLogList.appendChild(li);
-    pointLogList.scrollTop = pointLogList.scrollHeight;
+    li.textContent = '[' + new Date().toLocaleTimeString() + '] ' + label + ' (' + Math.round(x) + ', ' + Math.round(y) + ')';
+    pointLogList.appendChild(li); pointLogList.scrollTop = pointLogList.scrollHeight;
 }
-
 export function removeLastNamedPointLog() {
+    if (!pointLogList) return;
     const items = pointLogList.querySelectorAll('li:not(.empty-log)');
-    if (items.length > 0) {
-        items[items.length - 1].remove();
-    }
-    if (pointLogList.querySelectorAll('li:not(.empty-log)').length === 0) {
-        pointLogList.innerHTML = '<li class="empty-log">Пока нет точек</li>';
-    }
+    if (items.length) items[items.length - 1].remove();
+    if (!pointLogList.querySelectorAll('li:not(.empty-log)').length) pointLogList.innerHTML = '<li class="empty-log">Пока нет точек</li>';
 }
-
-export function clearNamedPointLog() {
-    pointLogList.innerHTML = '<li class="empty-log">Пока нет точек</li>';
-}
-
-export function updateSegmentLog(segments, getPointInfoFn) {
+export function clearNamedPointLog() { if (pointLogList) pointLogList.innerHTML = '<li class="empty-log">Пока нет точек</li>'; }
+export function updateSegmentLog(segs, getInfo) {
+    if (!segmentLogList) return;
     segmentLogList.innerHTML = '';
-    if (segments.length === 0) {
-        segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
-        return;
-    }
-    for (let seg of segments) {
-        const p1 = getPointInfoFn(seg.x1, seg.y1);
-        const p2 = getPointInfoFn(seg.x2, seg.y2);
-        const name1 = p1.letter ? p1.tId + '(' + p1.letter + ')' : p1.tId;
-        const name2 = p2.letter ? p2.tId + '(' + p2.letter + ')' : p2.tId;
+    if (!segs.length) { segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>'; return; }
+    for (let s of segs) {
+        const a = getInfo(s.x1, s.y1), b = getInfo(s.x2, s.y2);
+        const nameA = a.letter ? a.tId + '(' + a.letter + ')' : a.tId;
+        const nameB = b.letter ? b.tId + '(' + b.letter + ')' : b.tId;
         const li = document.createElement('li');
-        li.textContent = name1 + '-' + name2 + '  (' + Math.round(seg.x1) + ',' + Math.round(seg.y1) + ') → (' + Math.round(seg.x2) + ',' + Math.round(seg.y2) + ')';
+        li.textContent = nameA + '-' + nameB + '  (' + Math.round(s.x1) + ',' + Math.round(s.y1) + ') → (' + Math.round(s.x2) + ',' + Math.round(s.y2) + ')';
         segmentLogList.appendChild(li);
     }
 }
-
-/** Удаляет последнюю запись из лога отрезков (после отмены) */
 export function removeLastSegmentLog() {
+    if (!segmentLogList) return;
     const items = segmentLogList.querySelectorAll('li:not(.empty-log)');
-    if (items.length > 0) {
-        items[items.length - 1].remove();
-    }
-    if (segmentLogList.querySelectorAll('li:not(.empty-log)').length === 0) {
-        segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
-    }
+    if (items.length) items[items.length - 1].remove();
+    if (!segmentLogList.querySelectorAll('li:not(.empty-log)').length) segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
 }
-
-/** Заполняет лог производных отрезков (разбитых точками пересечения) */
-export function updateDerivedSegmentLog(derivedSegments) {
-    // Если элемент не существует – ничего не делаем
+export function updateDerivedSegmentLog(derived) {
     if (!derivedSegmentLog) return;
-    // Защита: если передали не массив, превращаем в пустой массив
-    if (!Array.isArray(derivedSegments)) {
-        console.warn('updateDerivedSegmentLog: передан не массив, заменён на []', derivedSegments);
-        derivedSegments = [];
-    }
+    if (!Array.isArray(derived)) derived = [];
     derivedSegmentLog.innerHTML = '';
-    if (derivedSegments.length === 0) {
-        derivedSegmentLog.innerHTML = '<li class="empty-log">Пока нет производных отрезков</li>';
-        return;
-    }
-    for (let seg of derivedSegments) {
+    if (!derived.length) { derivedSegmentLog.innerHTML = '<li class="empty-log">Пока нет производных отрезков</li>'; return; }
+    for (let s of derived) {
         const li = document.createElement('li');
-        li.textContent = seg.name1 + '-' + seg.name2 + '  (' + Math.round(seg.x1) + ',' + Math.round(seg.y1) + ') → (' + Math.round(seg.x2) + ',' + Math.round(seg.y2) + ')';
+        li.textContent = s.name1 + '-' + s.name2 + '  (' + Math.round(s.x1) + ',' + Math.round(s.y1) + ') → (' + Math.round(s.x2) + ',' + Math.round(s.y2) + ')';
         derivedSegmentLog.appendChild(li);
     }
 }
-
-/** Полная очистка логов отрезков */
 export function clearSegmentLog() {
-    segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
-    if (derivedSegmentLog) {
-        derivedSegmentLog.innerHTML = '<li class="empty-log">Пока нет производных отрезков</li>';
-    }
+    if (segmentLogList) segmentLogList.innerHTML = '<li class="empty-log">Пока нет отрезков</li>';
+    if (derivedSegmentLog) derivedSegmentLog.innerHTML = '<li class="empty-log">Пока нет производных отрезков</li>';
 }
-
-/** Отображает анализ в виде списка строк */
 export function setAnalysis(items) {
+    if (!analysisLog) return;
     analysisLog.innerHTML = '';
-    if (!items || items.length === 0) {
-        analysisLog.innerHTML = '<li class="empty-log">Нет данных для анализа</li>';
-        return;
-    }
-    for (let item of items) {
-        const li = document.createElement('li');
-        li.textContent = item;
-        analysisLog.appendChild(li);
-    }
+    if (!items || !items.length) { analysisLog.innerHTML = '<li class="empty-log">Нет данных для анализа</li>'; return; }
+    for (let item of items) { const li = document.createElement('li'); li.textContent = item; analysisLog.appendChild(li); }
 }
-
-/** Устанавливает текст в жёлтой области результата */
-export function setResult(text) {
-    resultArea.textContent = text;
-}
-
-/** Очищает анализ и результат */
-export function clearAnalysis() {
-    analysisLog.innerHTML = '';
-    resultArea.textContent = '';
-}
-
-// ---- Функции для кнопок выбора букв ----
-
-/** Возвращает активную кнопку буквы (ту, что подсвечена жёлтым) */
-export function getActivePointBtn() {
-    return document.querySelector('.point-btn.active');
-}
-
-/** Делает кнопку с заданной буквой активной (подсвечивает) */
+export function setResult(text) { if (resultArea) resultArea.textContent = text; }
+export function clearAnalysis() { if (analysisLog) analysisLog.innerHTML = ''; if (resultArea) resultArea.textContent = ''; }
+export function getActivePointBtn() { return document.querySelector('.point-btn.active'); }
 export function setActivePointBtn(label) {
-    pointBtns.forEach(btn => btn.classList.remove('active'));
-    if (label) {
-        const btn = document.querySelector('.point-btn[data-label="' + label + '"]');
-        if (btn) btn.classList.add('active');
-    }
+    pointBtns.forEach(b => b.classList.remove('active'));
+    if (label) { const btn = document.querySelector('.point-btn[data-label="' + label + '"]'); if (btn) btn.classList.add('active'); }
 }
-
-/** Блокирует кнопку (точка уже поставлена) */
 export function disablePointBtn(label) {
     const btn = document.querySelector('.point-btn[data-label="' + label + '"]');
-    if (btn) {
-        btn.disabled = true;
-        btn.classList.remove('active');
-    }
+    if (btn) { btn.disabled = true; btn.classList.remove('active'); }
 }
-
-/** Разблокирует кнопку */
 export function enablePointBtn(label) {
     const btn = document.querySelector('.point-btn[data-label="' + label + '"]');
     if (btn) btn.disabled = false;
 }
-
-/** Сбрасывает все кнопки: разблокирует и убирает подсветку */
-export function resetAllButtons() {
-    pointBtns.forEach(btn => {
-        btn.disabled = false;
-        btn.classList.remove('active');
-    });
-}
-
-// ---- Назначение обработчиков ----
-
-export function onCanvasClick(handler) {
-    canvas.addEventListener('click', handler);
-}
-
-export function onClearClick(handler) {
-    clearBtn.addEventListener('click', handler);
-}
-
-export function onUndoClick(handler) {
-    undoBtn.addEventListener('click', handler);
-}
-
-export function onCheckClick(handler) {
-    checkBtn.addEventListener('click', handler);
-}
-
-export function onHintClick(handler) {
-    hintBtn.addEventListener('click', handler);
-}
-
-/** Запускает таймер обратного отсчёта для кнопки подсказки */
+export function resetAllButtons() { pointBtns.forEach(b => { b.disabled = false; b.classList.remove('active'); }); }
 export function startHintTimer(duration, onTick, onComplete) {
     let remaining = duration;
-    hintBtn.disabled = true;
-    hintBtn.textContent = '💡 Подсказка (' + remaining + ')';
-    hintBar.style.width = '0%';
-
+    hintBtn.disabled = true; hintBtn.textContent = '💡 Подсказка (' + remaining + ')'; hintBar.style.width = '0%';
     const interval = setInterval(() => {
         remaining--;
         const progress = ((duration - remaining) / duration) * 100;
-        hintBar.style.width = progress + '%';
-        hintBtn.textContent = '💡 Подсказка (' + remaining + ')';
-
+        hintBar.style.width = progress + '%'; hintBtn.textContent = '💡 Подсказка (' + remaining + ')';
         if (remaining <= 0) {
             clearInterval(interval);
-            hintBtn.disabled = false;
-            hintBtn.textContent = '💡 Подсказка';
-            hintBar.style.width = '100%';
+            hintBtn.disabled = false; hintBtn.textContent = '💡 Подсказка'; hintBar.style.width = '100%';
             if (onComplete) onComplete();
         }
         if (onTick) onTick(remaining);
     }, 1000);
-}`,
-
-    // ===== 7. hints.js =====
-    // Логика подсказок – в зависимости от количества отрезков и их взаимного расположения.
-    'src/scripts/hints.js':
-`/**
- * Возвращает текст подсказки и список аналитических сообщений.
- * @param {Array} segments – массив отрезков [{x1,y1,x2,y2}, ...]
- * @returns {{ result: string, analysis: string[] }}
- */
-export function getHintMessage(segments) {
-    const count = segments.length;
-
-    // 0 отрезков – предложение нарисовать первый отрезок
-    if (count === 0) {
-        return {
-            result: 'Нарисуй отрезок, нажав на холст в начале и конце отрезка.',
-            analysis: ['ℹ️ Холст пуст — начни с первого отрезка.']
-        };
-    }
-
-    // 1 отрезок – нужно больше одного
-    if (count === 1) {
-        return {
-            result: 'Написано отрезки. Отрезки — это больше чем один.',
-            analysis: ['ℹ️ Один отрезок: нужно добавить ещё один, чтобы получить пересечение.']
-        };
-    }
-
-    // 2 отрезка – проверяем, пересекаются ли и где именно
-    if (count === 2) {
-        const [s1, s2] = segments; // берём первый и второй отрезок
-
-        // Вычисляем точку пересечения (внутренняя функция)
-        const intersectPt = (function() {
-            const x1 = s1.x1, y1 = s1.y1, x2 = s1.x2, y2 = s1.y2;
-            const x3 = s2.x1, y3 = s2.y1, x4 = s2.x2, y4 = s2.y2;
-            const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-            if (Math.abs(denom) < 1e-10) return null;
-            const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-            const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-            if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-                return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
-            }
-            return null;
-        })();
-
-        // Если не пересекаются
-        if (!intersectPt) {
-            return {
-                result: 'Отрезки это хорошо, но они должны пересекаться.',
-                analysis: ['❌ Два отрезка не пересекаются — построй их так, чтобы они пересеклись.']
-            };
-        }
-
-        // Проверяем, является ли точка пересечения серединой отрезка (допуск 2 пикселя)
-        function isMidpoint(px, py, seg) {
-            const mx = (seg.x1 + seg.x2) / 2;
-            const my = (seg.y1 + seg.y2) / 2;
-            return Math.abs(px - mx) < 2 && Math.abs(py - my) < 2;
-        }
-
-        const mid1 = isMidpoint(intersectPt.x, intersectPt.y, s1);
-        const mid2 = isMidpoint(intersectPt.x, intersectPt.y, s2);
-
-        // Если оба пересекаются в своих серединах – отлично, можно ставить точки
-        if (mid1 && mid2) {
-            return {
-                result: 'Пересекаются в середине. Теперь расставь точки A, B, C, D, E.',
-                analysis: ['✅ Пересечение в серединах обоих отрезков. Можно обозначать вершины.']
-            };
-        } else {
-            // Иначе – пересекаются, но не в серединах
-            return {
-                result: 'Пересекаются не в середине.',
-                analysis: ['ℹ️ Отрезки пересекаются, но не в своих серединах. Добейтесь пересечения в центре.']
-            };
-        }
-    }
-
-    // Больше двух отрезков – общая подсказка
-    return {
-        result: 'На холсте несколько отрезков. Продолжай строить чертёж.',
-        analysis: ['ℹ️ Несколько отрезков построено.']
-    };
-}`,
-
-    // ===== 8. main.js =====
-    // Главный модуль приложения: вся логика взаимодействия, обработчики, анализ.
-    'src/scripts/main.js':
-`// Импорты из других модулей
-import { canvas, ctx, W, H, getMousePos } from './canvas.js';
-import { drawGrid, snapToGrid, isInsideCanvas } from './grid.js';
-import {
-    possiblePoints,
-    updatePossiblePoints,
-    findClosestPossiblePoint,
-    drawPossiblePoints,
-    clearPossiblePoints
-} from './possiblePoints.js';
-import {
-    namedPoints,
-    addNamedPoint,
-    removeLastNamedPoint,
-    clearNamedPoints,
-    drawNamedPoints
-} from './points.js';
-import {
-    segments,
-    addSegment,
-    removeLastSegment,
-    clearSegments,
-    drawAllSegments
-} from './segments.js';
-import {
-    // импорт всех UI-функций и элементов
-    statusEl, clearBtn, undoBtn, checkBtn, hintBtn, hintBar,
-    setStatus,
-    updatePossiblePointLog,
-    addNamedPointLog, removeLastNamedPointLog, clearNamedPointLog,
-    updateSegmentLog, removeLastSegmentLog, clearSegmentLog, updateDerivedSegmentLog,
-    setAnalysis, setResult, clearAnalysis,
-    getActivePointBtn, setActivePointBtn, disablePointBtn, enablePointBtn, resetAllButtons,
-    onCanvasClick, onClearClick, onUndoClick, onCheckClick, onHintClick,
-    startHintTimer
-} from './ui.js';
-import { getHintMessage } from './hints.js';  // функция подсказки
-
-console.log('🚀 main.js загружен!');  // отладочное сообщение
-
-// Переменные для построения временного отрезка
-let startPoint = null;  // начальная точка (когда пользователь делает первый клик)
-let endPoint = null;    // конечная точка (второй клик)
-let actionHistory = []; // история действий для отмены (стек)
-let activeLabel = null; // какая буква сейчас активна (выбрана кнопкой)
-
-// ---- Вспомогательные функции для получения имён точек по координатам ----
-
-/**
- * Возвращает имя точки (букву, если есть, или T-идентификатор) по координатам.
- * Используется в старых местах, где нужен просто идентификатор.
- */
-function getPointNameByCoord(x, y, tol = 1) {
-    // сначала ищем среди именованных точек
-    for (let np of namedPoints) {
-        if (Math.abs(np.x - x) < tol && Math.abs(np.y - y) < tol) {
-            return np.label;
-        }
-    }
-    // затем среди возможных
-    for (let pp of possiblePoints) {
-        if (Math.abs(pp.x - x) < tol && Math.abs(pp.y - y) < tol) {
-            return pp.id;
-        }
-    }
-    return '?';
 }
 
-/**
- * Возвращает объект с T-идентификатором и буквой (если есть) для координат.
- * Используется для красивых подписей в логах.
- */
+export function showDeleteButton() {
+    if (deleteBtn) deleteBtn.style.display = 'inline-block';
+}
+
+export function hideDeleteButton() {
+    if (deleteBtn) deleteBtn.style.display = 'none';
+}
+`,
+
+    // ===== taskConfig.js =====
+    'src/scripts/taskConfig.js':
+`export const lessons = {
+    'lesson1-1': {
+        title: 'Занятие 1. Знакомство с редактором',
+        intro: '<h2>Введение</h2><p>Здесь вы научитесь пользоваться редактором: рисовать отрезки, проверять пересечения и получать подсказки.</p>',
+        tasks: [
+            { id: 'lesson1-1-task1', title: 'Задание 1. Первый чертёж', taskConfigId: 'task1-1' },
+            { id: 'lesson1-1-task2', title: 'Задание 2. Второй чертёж', taskConfigId: 'task1-1' }
+        ]
+    },
+    'lesson1-2': {
+        title: 'Занятие 2. Самостоятельный чертёж',
+        intro: '<h2>Введение</h2><p>Теперь попробуйте самостоятельно нарисовать чертёж по описанию.</p>',
+        tasks: [
+            { id: 'lesson1-2-task1', title: 'Задание 1. Пересекающиеся отрезки', taskConfigId: 'task1-1' },
+            { id: 'lesson1-2-task2', title: 'Задание 2. Ещё один чертёж', taskConfigId: 'task1-1' }
+        ]
+    }
+};
+
+export const tasks = {
+    'task1-1': {
+        check(segments) {
+            const count = segments.length;
+            const analysis = [];
+            let result = '';
+            if (count < 2) {
+                result = 'Нарисуйте два отрезка.';
+                analysis.push('❌ Недостаточно отрезков (нужно 2).');
+            } else if (count === 2) {
+                const [s1, s2] = segments;
+                const intersect = (function() {
+                    const denom = (s1.x1 - s1.x2)*(s2.y1 - s2.y2) - (s1.y1 - s1.y2)*(s2.x1 - s2.x2);
+                    if (Math.abs(denom) < 1e-10) return false;
+                    const t = ((s1.x1 - s2.x1)*(s2.y1 - s2.y2) - (s1.y1 - s2.y1)*(s2.x1 - s2.x2)) / denom;
+                    const u = -((s1.x1 - s1.x2)*(s1.y1 - s2.y1) - (s1.y1 - s1.y2)*(s1.x1 - s2.x1)) / denom;
+                    return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+                })();
+                if (intersect) {
+                    result = '✅ Отрезки пересекаются. Задача выполнена!';
+                    analysis.push('✅ Два отрезка пересекаются.');
+                } else {
+                    result = 'Отрезки не пересекаются. Попробуйте сделать их пересекающимися.';
+                    analysis.push('❌ Отрезки не пересекаются.');
+                }
+            } else {
+                result = 'Оставьте только два отрезка.';
+                analysis.push('⚠️ Слишком много отрезков (ожидается 2).');
+            }
+            return { result, analysis };
+        },
+        hint(segments) {
+            const count = segments.length;
+            if (count === 0) return { result: 'Нарисуйте первый отрезок, кликнув по холсту дважды.', analysis: ['ℹ️ Начните с первого отрезка.'] };
+            if (count === 1) return { result: 'Нарисуйте второй отрезок.', analysis: ['ℹ️ Добавьте ещё один отрезок.'] };
+            if (count === 2) {
+                const [s1, s2] = segments;
+                const intersect = (function() {
+                    const denom = (s1.x1 - s1.x2)*(s2.y1 - s2.y2) - (s1.y1 - s1.y2)*(s2.x1 - s2.x2);
+                    if (Math.abs(denom) < 1e-10) return false;
+                    const t = ((s1.x1 - s2.x1)*(s2.y1 - s2.y2) - (s1.y1 - s2.y1)*(s2.x1 - s2.x2)) / denom;
+                    const u = -((s1.x1 - s1.x2)*(s1.y1 - s2.y1) - (s1.y1 - s1.y2)*(s1.x1 - s2.x1)) / denom;
+                    return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+                })();
+                if (!intersect) return { result: 'Отрезки не пересекаются. Попробуйте расположить их крест-накрест.', analysis: ['❌ Два отрезка не пересекаются.'] };
+                return { result: 'Отлично! Отрезки пересекаются. Задача решена!', analysis: ['✅ Два отрезка пересекаются.'] };
+            }
+            return { result: 'Оставьте только два отрезка.', analysis: ['⚠️ Слишком много отрезков.'] };
+        }
+    }
+};`,
+
+    // ===== progress.js =====
+    'src/scripts/progress.js':
+`const PROGRESS_KEY = 'geometry-progress-v1';
+const APP_STATE_KEY = 'geometry-app-state-v1';
+
+export function loadProgress() {
+    try { const raw = localStorage.getItem(PROGRESS_KEY); return raw ? JSON.parse(raw) : { completedLessons: [] }; }
+    catch (e) { console.error('Ошибка загрузки прогресса:', e); return { completedLessons: [] }; }
+}
+export function saveProgress(progress) { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (e) { console.error('Ошибка сохранения прогресса:', e); } }
+export function markLessonCompleted(lessonId) {
+    const progress = loadProgress();
+    if (!progress.completedLessons.includes(lessonId)) { progress.completedLessons.push(lessonId); saveProgress(progress); return true; }
+    return false;
+}
+export function isLessonCompleted(lessonId) { const progress = loadProgress(); return progress.completedLessons.includes(lessonId); }
+export function saveAppState(appState) { try { localStorage.setItem(APP_STATE_KEY, JSON.stringify(appState)); } catch (e) { console.error('Ошибка сохранения состояния холстов:', e); } }
+export function loadAppState() {
+    try { const raw = localStorage.getItem(APP_STATE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { console.error('Ошибка загрузки состояния холстов:', e); return {}; }
+}`,
+
+    // ===== drawing.js (полный, с выделением и удалением) =====
+    'src/scripts/drawing.js':
+`import { canvas, ctx, W, H, getMousePos } from './canvas.js';
+import { drawGrid, snapToGrid, isInsideCanvas } from './grid.js';
+import {
+    possiblePoints, updatePossiblePoints, findClosestPossiblePoint,
+    drawPossiblePoints, clearPossiblePoints
+} from './possiblePoints.js';
+import {
+    namedPoints, clearNamedPoints, drawNamedPoints
+} from './points.js';
+import {
+    segments, addSegment, removeLastSegment, clearSegments, drawAllSegments
+} from './segments.js';
+import {
+    setStatus, updatePossiblePointLog, updateSegmentLog,
+    removeLastSegmentLog, clearSegmentLog, updateDerivedSegmentLog,
+    setAnalysis, setResult, clearAnalysis,
+    getActivePointBtn, setActivePointBtn, disablePointBtn, enablePointBtn,
+    resetAllButtons, startHintTimer,
+    clearNamedPointLog,
+    showDeleteButton, hideDeleteButton
+} from './ui.js';
+
+console.log('🔧 drawing.js загружен');
+
+let startPoint = null;
+let endPoint = null;
+let actionHistory = [];
+const MAX_HISTORY = 100;
+let activeLabel = null;
+
+let dragMode = 'none';
+let dragPoint = null;
+let dragSegment = null;
+let dragStartPos = null;
+let originalSegmentCoords = null;
+let mouseDownPos = null;
+let isDragging = false;
+
+let selectedSegment = null;
+
+const POINT_GRAB_RADIUS = 12;
+const SEGMENT_GRAB_RADIUS = 10;
+
 function getPointFullName(x, y) {
-    let tId = '?';
-    let letter = null;
-    // ищем T-идентификатор
-    for (let pp of possiblePoints) {
-        if (Math.abs(pp.x - x) < 1 && Math.abs(pp.y - y) < 1) {
-            tId = pp.id;
-            break;
-        }
-    }
-    // ищем букву
-    for (let np of namedPoints) {
-        if (Math.abs(np.x - x) < 1 && Math.abs(np.y - y) < 1) {
-            letter = np.label;
-            break;
-        }
-    }
+    let tId = '?', letter = null;
+    for (let pp of possiblePoints) if (Math.abs(pp.x - x) < 1 && Math.abs(pp.y - y) < 1) { tId = pp.id; break; }
+    for (let np of namedPoints) if (Math.abs(np.x - x) < 1 && Math.abs(np.y - y) < 1) { letter = np.label; break; }
     return { tId, letter };
 }
 
-/**
- * Проверяет, лежит ли точка (p) на отрезке seg (с допуском 2 пикселя).
- */
-function isPointOnSegment(p, seg) {
-    const { x1, y1, x2, y2 } = seg;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const lengthSq = dx*dx + dy*dy;         // квадрат длины отрезка
-    if (lengthSq === 0) return Math.abs(p.x - x1) < 1 && Math.abs(p.y - y1) < 1; // отрезок-точка
-    // Параметр проекции t
-    const t = ((p.x - x1)*dx + (p.y - y1)*dy) / lengthSq;
-    if (t < -0.001 || t > 1.001) return false; // не попадает на отрезок
-    const projX = x1 + t*dx;
-    const projY = y1 + t*dy;
-    const dist = Math.sqrt((p.x - projX)*(p.x - projX) + (p.y - projY)*(p.y - projY));
-    return dist < 2; // допуск 2 пикселя
-}
-
-/**
- * Строит список производных отрезков – частей исходных отрезков, на которые они разбиваются точками пересечения.
- * Каждый элемент: { x1, y1, x2, y2, name1, name2 }
- */
 function getDerivedSegments() {
     try {
         const derived = [];
         if (!segments || !possiblePoints) return derived;
         for (let seg of segments) {
-            const pointsOnSeg = [];
-            // собираем все возможные точки, лежащие на этом отрезке
-            for (let p of possiblePoints) {
-                if (isPointOnSegment(p, seg)) {
-                    pointsOnSeg.push({ x: p.x, y: p.y, id: p.id });
-                }
-            }
-            // убираем дубликаты
-            const unique = [];
-            const seen = new Set();
-            for (let p of pointsOnSeg) {
-                const key = p.x + ',' + p.y;
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    unique.push(p);
-                }
-            }
-            // сортируем точки вдоль отрезка
-            const dx = seg.x2 - seg.x1;
-            const dy = seg.y2 - seg.y1;
-            unique.sort((a, b) => {
-                const tA = (dx !== 0) ? (a.x - seg.x1) / dx : (a.y - seg.y1) / dy;
-                const tB = (dx !== 0) ? (b.x - seg.x1) / dx : (b.y - seg.y1) / dy;
-                return tA - tB;
-            });
-            // формируем отрезки между соседними точками
-            for (let i = 0; i < unique.length - 1; i++) {
-                const p1 = unique[i];
-                const p2 = unique[i+1];
-                const full1 = getPointFullName(p1.x, p1.y);
-                const full2 = getPointFullName(p2.x, p2.y);
-                // имя с буквой, если есть
-                const name1 = full1.letter ? full1.tId + '(' + full1.letter + ')' : full1.tId;
-                const name2 = full2.letter ? full2.tId + '(' + full2.letter + ')' : full2.tId;
+            const pts = [];
+            for (let p of possiblePoints) if (isPointOnSegment(p, seg)) pts.push({x: p.x, y: p.y, id: p.id});
+            const uniq = [], seen = new Set();
+            for (let p of pts) { const k = p.x+','+p.y; if (!seen.has(k)) { seen.add(k); uniq.push(p); } }
+            const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+            uniq.sort((a,b) => (dx!==0?(a.x-seg.x1)/dx:(a.y-seg.y1)/dy) - (dx!==0?(b.x-seg.x1)/dx:(b.y-seg.y1)/dy));
+            for (let i=0; i<uniq.length-1; i++) {
+                const p1=uniq[i], p2=uniq[i+1];
+                const f1=getPointFullName(p1.x,p1.y), f2=getPointFullName(p2.x,p2.y);
                 derived.push({
-                    x1: p1.x, y1: p1.y,
-                    x2: p2.x, y2: p2.y,
-                    name1: name1,
-                    name2: name2
+                    x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,
+                    name1: f1.letter ? f1.tId+'('+f1.letter+')' : f1.tId,
+                    name2: f2.letter ? f2.tId+'('+f2.letter+')' : f2.tId
                 });
             }
         }
         return derived;
-    } catch (e) {
-        console.error('Ошибка в getDerivedSegments:', e);
-        return [];
-    }
+    } catch (e) { console.error(e); return []; }
 }
 
-// ---- Геометрические вычисления для анализа ----
-
-function segLength(s) {
-    const dx = s.x2 - s.x1;
-    const dy = s.y2 - s.y1;
-    return Math.sqrt(dx*dx + dy*dy);
+function isPointOnSegment(p, seg) {
+    const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return Math.abs(p.x - seg.x1) < 1 && Math.abs(p.y - seg.y1) < 1;
+    const t = ((p.x - seg.x1)*dx + (p.y - seg.y1)*dy) / len2;
+    if (t < -0.001 || t > 1.001) return false;
+    const projX = seg.x1 + t*dx, projY = seg.y1 + t*dy;
+    return Math.hypot(p.x - projX, p.y - projY) < 2;
 }
 
-function segAngle(s) {
-    let ang = Math.atan2(s.y2 - s.y1, s.x2 - s.x1) * 180 / Math.PI;
-    if (ang < 0) ang += 180;
-    return ang;
+function distanceToSegment(px, py, seg) {
+    const { x1, y1, x2, y2 } = seg;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1)*dx + (py - y1)*dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + t*dx, projY = y1 + t*dy;
+    return Math.hypot(px - projX, py - projY);
 }
 
-function angleBetweenSegments(s1, s2) {
-    const dx1 = s1.x2 - s1.x1;
-    const dy1 = s1.y2 - s1.y1;
-    const dx2 = s2.x2 - s2.x1;
-    const dy2 = s2.y2 - s2.y1;
-    const dot = dx1*dx2 + dy1*dy2;
-    const norm1 = Math.sqrt(dx1*dx1 + dy1*dy1);
-    const norm2 = Math.sqrt(dx2*dx2 + dy2*dy2);
-    if (norm1 < 0.001 || norm2 < 0.001) return 0;
-    const cosA = Math.max(-1, Math.min(1, dot / (norm1 * norm2)));
-    return Math.acos(cosA) * 180 / Math.PI;
+function findClosestSegment(px, py, maxDist = SEGMENT_GRAB_RADIUS) {
+    let best = null, bestDist = Infinity;
+    for (let seg of segments) {
+        const dist = distanceToSegment(px, py, seg);
+        if (dist < bestDist && dist <= maxDist) { bestDist = dist; best = seg; }
+    }
+    return best;
 }
 
-function isParallel(s1, s2) {
-    const a1 = segAngle(s1);
-    const a2 = segAngle(s2);
-    const diff = Math.abs(a1 - a2) % 180;
-    return diff < 0.1 || diff > 179.9;
+function pushHistory(action) {
+    actionHistory.push(action);
+    if (actionHistory.length > MAX_HISTORY) actionHistory.shift();
 }
 
-/**
- * Выполняет полный анализ чертежа и возвращает список строк.
- */
-function performAnalysis() {
-    const lines = [];
-    const derived = getDerivedSegments();
-
-    // 1. Пересекающиеся отрезки (пары)
-    const intersecting = [];
-    for (let i = 0; i < segments.length; i++) {
-        for (let j = i+1; j < segments.length; j++) {
-            const p = segmentIntersection(segments[i], segments[j]);
-            if (p) {
-                const name1 = getPointFullName(segments[i].x1, segments[i].y1).tId + getPointFullName(segments[i].x2, segments[i].y2).tId;
-                const name2 = getPointFullName(segments[j].x1, segments[j].y1).tId + getPointFullName(segments[j].x2, segments[j].y2).tId;
-                intersecting.push(name1 + ' и ' + name2);
-            }
-        }
-    }
-    lines.push(intersecting.length > 0 ? '✅ Пересекающиеся отрезки: ' + intersecting.join(', ') : '❌ Пересекающихся отрезков нет');
-
-    // 2. Равные отрезки (допуск 1 пиксель)
-    const equalGroups = [];
-    const visited = new Array(segments.length).fill(false);
-    for (let i = 0; i < segments.length; i++) {
-        if (visited[i]) continue;
-        const lenI = segLength(segments[i]);
-        const group = [i];
-        for (let j = i+1; j < segments.length; j++) {
-            if (visited[j]) continue;
-            if (Math.abs(segLength(segments[j]) - lenI) < 1) {
-                group.push(j);
-                visited[j] = true;
-            }
-        }
-        if (group.length > 1) {
-            visited[i] = true;
-            const names = group.map(idx => getPointFullName(segments[idx].x1, segments[idx].y1).tId + getPointFullName(segments[idx].x2, segments[idx].y2).tId);
-            equalGroups.push(names.join(', ') + ' (длина ' + lenI.toFixed(1) + ')');
-        }
-    }
-    lines.push(equalGroups.length > 0 ? '✅ Равные отрезки: ' + equalGroups.join('; ') : '❌ Равных отрезков нет');
-
-    // 3. Углы (на основе производных отрезков)
-    const angleSet = new Set();
-    for (let p of possiblePoints) {
-        const incident = derived.filter(s => (Math.abs(s.x1 - p.x) < 1 && Math.abs(s.y1 - p.y) < 1) || (Math.abs(s.x2 - p.x) < 1 && Math.abs(s.y2 - p.y) < 1));
-        for (let i = 0; i < incident.length; i++) {
-            for (let j = i+1; j < incident.length; j++) {
-                const s1 = incident[i], s2 = incident[j];
-                const v1 = (Math.abs(s1.x1 - p.x) < 1 && Math.abs(s1.y1 - p.y) < 1) ? {x: s1.x2, y: s1.y2} : {x: s1.x1, y: s1.y1};
-                const v2 = (Math.abs(s2.x1 - p.x) < 1 && Math.abs(s2.y1 - p.y) < 1) ? {x: s2.x2, y: s2.y2} : {x: s2.x1, y: s2.y1};
-                const name1 = getPointFullName(v1.x, v1.y).tId;
-                const name2 = getPointFullName(v2.x, v2.y).tId;
-                const centerName = getPointFullName(p.x, p.y).tId;
-                const ang = angleBetweenSegments({x1: p.x, y1: p.y, x2: v1.x, y2: v1.y}, {x1: p.x, y1: p.y, x2: v2.x, y2: v2.y});
-                const key = centerName + '|' + [name1, name2].sort().join('|');
-                if (!angleSet.has(key)) {
-                    angleSet.add(key);
-                    lines.push('📐 Угол <' + name1 + centerName + name2 + ' = ' + ang.toFixed(1) + '°');
-                }
-            }
-        }
-    }
-    if (angleSet.size === 0) lines.push('❌ Углы не обнаружены');
-
-    // 4. Общие точки (инцидентность >1)
-    const pointIncidence = new Map();
-    for (let s of derived) {
-        const id1 = getPointFullName(s.x1, s.y1).tId;
-        const id2 = getPointFullName(s.x2, s.y2).tId;
-        pointIncidence.set(id1, (pointIncidence.get(id1) || 0) + 1);
-        pointIncidence.set(id2, (pointIncidence.get(id2) || 0) + 1);
-    }
-    const commonPoints = [];
-    for (let [id, count] of pointIncidence.entries()) {
-        if (count > 1) commonPoints.push(id + ' (' + count + ' отр.)');
-    }
-    lines.push(commonPoints.length > 0 ? '✅ Общие точки: ' + commonPoints.join(', ') : '❌ Общих точек нет');
-
-    // 5. Параллельные отрезки
-    const parallelPairs = [];
-    for (let i = 0; i < segments.length; i++) {
-        for (let j = i+1; j < segments.length; j++) {
-            if (isParallel(segments[i], segments[j])) {
-                const n1 = getPointFullName(segments[i].x1, segments[i].y1).tId + getPointFullName(segments[i].x2, segments[i].y2).tId;
-                const n2 = getPointFullName(segments[j].x1, segments[j].y1).tId + getPointFullName(segments[j].x2, segments[j].y2).tId;
-                parallelPairs.push(n1 + ' || ' + n2);
-            }
-        }
-    }
-    lines.push(parallelPairs.length > 0 ? '✅ Параллельные отрезки: ' + parallelPairs.join(', ') : '❌ Параллельных отрезков нет');
-
-    // 6. Перпендикулярные (90°)
-    const perpPairs = [];
-    for (let i = 0; i < segments.length; i++) {
-        for (let j = i+1; j < segments.length; j++) {
-            const ang = angleBetweenSegments(segments[i], segments[j]);
-            if (Math.abs(ang - 90) < 0.1) {
-                const n1 = getPointFullName(segments[i].x1, segments[i].y1).tId + getPointFullName(segments[i].x2, segments[i].y2).tId;
-                const n2 = getPointFullName(segments[j].x1, segments[j].y1).tId + getPointFullName(segments[j].x2, segments[j].y2).tId;
-                perpPairs.push(n1 + ' ⊥ ' + n2);
-            }
-        }
-    }
-    lines.push(perpPairs.length > 0 ? '✅ Перпендикулярные отрезки (90°): ' + perpPairs.join(', ') : '❌ Перпендикулярных отрезков (90°) нет');
-
-    // 7. Примерно перпендикулярные (85°–95°)
-    const approxPerpPairs = [];
-    for (let i = 0; i < segments.length; i++) {
-        for (let j = i+1; j < segments.length; j++) {
-            const ang = angleBetweenSegments(segments[i], segments[j]);
-            if (ang >= 85 && ang <= 95) {
-                const n1 = getPointFullName(segments[i].x1, segments[i].y1).tId + getPointFullName(segments[i].x2, segments[i].y2).tId;
-                const n2 = getPointFullName(segments[j].x1, segments[j].y1).tId + getPointFullName(segments[j].x2, segments[j].y2).tId;
-                approxPerpPairs.push(n1 + ' ∠ ' + n2 + ' (' + ang.toFixed(1) + '°)');
-            }
-        }
-    }
-    lines.push(approxPerpPairs.length > 0 ? '✅ Примерно перпендикулярные отрезки (85°–95°): ' + approxPerpPairs.join(', ') : '❌ Примерно перпендикулярных отрезков (85°–95°) нет');
-
-    return lines;
+function snapshotSegments() {
+    return segments.map(seg => ({ ...seg }));
 }
 
-/** Вычисление точки пересечения (дубликат для анализа, чтобы не импортировать) */
-function segmentIntersection(s1, s2) {
-    const x1 = s1.x1, y1 = s1.y1, x2 = s1.x2, y2 = s1.y2;
-    const x3 = s2.x1, y3 = s2.y1, x4 = s2.x2, y4 = s2.y2;
-    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (Math.abs(denom) < 1e-10) return null;
-    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-        return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
-    }
-    return null;
-}
-
-// ---- Отрисовка всего холста ----
 function render() {
-    ctx.clearRect(0, 0, W, H);  // очищаем холст
-    drawGrid();                 // рисуем сетку
-    drawAllSegments();          // все отрезки
-    drawPossiblePoints();       // возможные точки (крестики)
-    drawNamedPoints();          // именованные точки (кружки)
-    drawTempSegment();          // временный отрезок (если строится)
-    drawMarkers();              // маркеры начала и конца временного отрезка
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W, H);
+    drawGrid();
+    drawAllSegments();
+    if (selectedSegment) {
+        ctx.save();
+        ctx.strokeStyle = '#f39c12';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(selectedSegment.x1, selectedSegment.y1);
+        ctx.lineTo(selectedSegment.x2, selectedSegment.y2);
+        ctx.stroke();
+        ctx.restore();
+    }
+    drawPossiblePoints();
+    drawNamedPoints();
+    drawTempSegment();
+    drawMarkers();
 }
 
-/** Рисует временный отрезок (когда пользователь делает второй клик) */
 function drawTempSegment() {
     if (startPoint && endPoint) {
         ctx.save();
-        ctx.setLineDash([4, 4]);      // пунктир
-        ctx.strokeStyle = '#e67e22';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(startPoint.x, startPoint.y);
-        ctx.lineTo(endPoint.x, endPoint.y);
-        ctx.stroke();
+        ctx.setLineDash([4,4]); ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(startPoint.x, startPoint.y); ctx.lineTo(endPoint.x, endPoint.y); ctx.stroke();
         ctx.restore();
     }
 }
 
-/** Рисует красные маркеры начальной и конечной точек временного отрезка */
 function drawMarkers() {
     ctx.save();
     ctx.fillStyle = '#e74c3c';
-    if (startPoint) {
-        ctx.beginPath();
-        ctx.arc(startPoint.x, startPoint.y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-    if (endPoint) {
-        ctx.beginPath();
-        ctx.arc(endPoint.x, endPoint.y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-    }
+    if (startPoint) { ctx.beginPath(); ctx.arc(startPoint.x, startPoint.y, 5, 0, 2*Math.PI); ctx.fill(); }
+    if (endPoint) { ctx.beginPath(); ctx.arc(endPoint.x, endPoint.y, 5, 0, 2*Math.PI); ctx.fill(); }
     ctx.restore();
 }
 
-// Обновление возможных точек и их лога
-function refreshPossiblePoints() {
-    updatePossiblePoints(segments);
+function refreshLogs() {
     updatePossiblePointLog(possiblePoints);
-}
-
-// Обновление всех логов (отрезки, производные)
-function refreshAllLogs() {
     updateSegmentLog(segments, getPointFullName);
-    let derived = [];
-    try {
-        const result = getDerivedSegments();
-        if (Array.isArray(result)) derived = result;
-    } catch (e) { console.error('Ошибка в refreshAllLogs:', e); }
-    updateDerivedSegmentLog(derived);
+    updateDerivedSegmentLog(getDerivedSegments());
 }
 
-// ---- Главный обработчик клика по холсту ----
-function handleCanvasClick(e) {
-    const pos = getMousePos(e);  // координаты клика на холсте
-    const x = pos.x, y = pos.y;
+function onMouseDown(e) {
+    const pos = getMousePos(e);
+    const px = pos.x, py = pos.y;
+    mouseDownPos = { x: px, y: py };
+    isDragging = false;
 
-    // Если активна кнопка буквы (ставим именованную точку)
-    const activeBtn = getActivePointBtn();
-    if (activeBtn) {
-        const label = activeBtn.dataset.label;
-        // проверяем, не стоит ли уже такая точка
-        if (namedPoints.some(p => p.label === label)) {
-            setStatus('Точка ' + label + ' уже стоит! Выбери другую кнопку.');
+    if (!startPoint) {
+        const closestPoint = findClosestPossiblePoint(px, py, POINT_GRAB_RADIUS);
+        if (closestPoint) {
+            dragMode = 'point';
+            dragPoint = closestPoint;
+            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
+            clearSelection();
+            e.preventDefault();
             return;
         }
-        // ищем ближайшую возможную точку
-        const closest = findClosestPossiblePoint(x, y, 30);
-        if (!closest) {
-            setStatus('Рядом нет возможной точки (Т1, Т2, ...). Попробуй ещё раз.');
+
+        const closestSeg = findClosestSegment(px, py, SEGMENT_GRAB_RADIUS);
+        if (closestSeg) {
+            selectSegment(closestSeg);
+            dragMode = 'segment';
+            dragSegment = closestSeg;
+            dragStartPos = { x: snapToGrid(px), y: snapToGrid(py) };
+            originalSegmentCoords = { x1: closestSeg.x1, y1: closestSeg.y1, x2: closestSeg.x2, y2: closestSeg.y2 };
+            e.preventDefault();
             return;
         }
-        // добавляем точку, обновляем логи и кнопки
-        addNamedPoint(label, closest.x, closest.y);
-        addNamedPointLog(label, closest.x, closest.y);
-        disablePointBtn(label);
-        setActivePointBtn(null);
-        activeLabel = null;
-        actionHistory.push({ type: 'point', label, x: closest.x, y: closest.y });
-        setStatus('Точка ' + label + ' поставлена в ' + closest.id + ' ✅');
+    }
+
+    clearSelection();
+    dragMode = 'none';
+}
+
+function onMouseMove(e) {
+    const pos = getMousePos(e);
+    const px = pos.x, py = pos.y;
+
+    if (mouseDownPos && !isDragging) {
+        const dx = px - mouseDownPos.x, dy = py - mouseDownPos.y;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDragging = true;
+    }
+
+    if (dragMode === 'point' && dragPoint) {
+        const snapX = snapToGrid(px), snapY = snapToGrid(py);
+        for (let seg of segments) {
+            if (Math.abs(seg.x1 - dragPoint.x) < 1 && Math.abs(seg.y1 - dragPoint.y) < 1) { seg.x1 = snapX; seg.y1 = snapY; }
+            if (Math.abs(seg.x2 - dragPoint.x) < 1 && Math.abs(seg.y2 - dragPoint.y) < 1) { seg.x2 = snapX; seg.y2 = snapY; }
+        }
+        dragPoint.x = snapX; dragPoint.y = snapY;
+        updatePossiblePoints(segments);
         render();
-        refreshAllLogs();
+        refreshLogs();
+    } else if (dragMode === 'segment' && dragSegment) {
+        const snapX = snapToGrid(px), snapY = snapToGrid(py);
+        const dx = snapX - dragStartPos.x, dy = snapY - dragStartPos.y;
+        dragSegment.x1 = originalSegmentCoords.x1 + dx;
+        dragSegment.y1 = originalSegmentCoords.y1 + dy;
+        dragSegment.x2 = originalSegmentCoords.x2 + dx;
+        dragSegment.y2 = originalSegmentCoords.y2 + dy;
+        updatePossiblePoints(segments);
+        render();
+        refreshLogs();
+    }
+
+    if (startPoint && !endPoint && !isDragging && dragMode === 'none') {
+        endPoint = { x: snapToGrid(px), y: snapToGrid(py) };
+        render();
+    }
+}
+
+function onMouseUp(e) {
+    const pos = getMousePos(e);
+    const px = pos.x, py = pos.y;
+
+    if (isDragging) {
+        if (dragMode === 'point' || dragMode === 'segment') {
+            pushHistory({ type: 'move', oldSegments: snapshotSegments(), newSegments: snapshotSegments() });
+        }
+        dragMode = 'none'; dragPoint = null; dragSegment = null;
+        dragStartPos = null; originalSegmentCoords = null;
+        isDragging = false; mouseDownPos = null;
+        if (typeof onDrawingChanged === 'function') onDrawingChanged();
+        render();
+        refreshLogs();
         return;
     }
 
-    // Иначе строим отрезок
-    const snapX = snapToGrid(x);  // привязываемся к узлам сетки
-    const snapY = snapToGrid(y);
-    if (!isInsideCanvas(snapX, snapY)) {
-        setStatus('Кликни внутри серого поля 😊');
+    if (dragMode === 'segment') {
+        dragMode = 'none'; dragSegment = null;
+        dragStartPos = null; originalSegmentCoords = null;
+        isDragging = false; mouseDownPos = null;
+        render();
+        refreshLogs();
         return;
     }
 
-    // Первый клик – запоминаем начало
+    if (dragMode === 'none') {
+        handleCanvasClickAt(px, py);
+    }
+
+    dragMode = 'none'; dragPoint = null; dragSegment = null;
+    dragStartPos = null; originalSegmentCoords = null;
+    isDragging = false; mouseDownPos = null;
+}
+
+function handleCanvasClickAt(px, py) {
+    const snapX = snapToGrid(px), snapY = snapToGrid(py);
+    if (!isInsideCanvas(snapX, snapY)) { setStatus('Кликни внутри поля'); return; }
+
     if (!startPoint) {
         startPoint = { x: snapX, y: snapY };
-        setStatus('Отлично! Теперь кликни в любое место, чтобы выбрать конец отрезка ✏️');
+        endPoint = null;
+        setStatus('Теперь кликни, чтобы выбрать конец отрезка ✏️');
         render();
-        return;
-    }
-
-    // Второй клик – фиксируем конец и создаём отрезок
-    if (startPoint && !endPoint) {
+    } else {
         if (startPoint.x === snapX && startPoint.y === snapY) {
-            setStatus('Ты выбрал ту же точку. Начни сначала 🔄');
-            startPoint = null;
+            setStatus('Ты выбрал ту же точку. Начни сначала.');
+            startPoint = null; endPoint = null;
             render();
             return;
         }
-        endPoint = { x: snapX, y: snapY };
-        setStatus('Ура! Отрезок готов 🎉');
-        addSegment(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
-        actionHistory.push({ type: 'segment', x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y });
-        startPoint = null;
-        endPoint = null;
-        refreshPossiblePoints();
+        const finalEnd = { x: snapX, y: snapY };
+        addSegment(startPoint.x, startPoint.y, finalEnd.x, finalEnd.y);
+        pushHistory({ type: 'add', segment: { x1: startPoint.x, y1: startPoint.y, x2: finalEnd.x, y2: finalEnd.y } });
+        startPoint = null; endPoint = null;
+        updatePossiblePoints(segments);
         render();
-        refreshAllLogs();
-        setStatus('Кликни в любое место, чтобы начать новый отрезок ✨');
-        return;
+        refreshLogs();
+        if (typeof onDrawingChanged === 'function') onDrawingChanged();
+        setStatus('Отрезок готов!');
     }
-
-    // Если что-то пошло не так – сбрасываем
-    startPoint = null;
-    endPoint = null;
-    render();
-    setStatus('Начнём заново. Кликни, чтобы выбрать начало отрезка');
 }
 
-// ---- Кнопки выбора букв (A-E) ----
-document.querySelectorAll('.point-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const label = btn.dataset.label;
-        if (btn.disabled) return;
-        if (btn.classList.contains('active')) {
-            // если уже активна – отменяем выбор
-            btn.classList.remove('active');
-            setActivePointBtn(null);
-            activeLabel = null;
-            setStatus('Выбор точки отменён');
-        } else {
-            // иначе делаем эту кнопку активной
-            document.querySelectorAll('.point-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            activeLabel = label;
-            setStatus('Выбрана точка ' + label + '. Кликни на холсте рядом с возможной точкой (Т1, Т2, ...).');
-        }
-    });
+function selectSegment(seg) {
+    if (selectedSegment !== seg) {
+        selectedSegment = seg;
+        showDeleteButton();
+    }
+    render();
+}
+
+function clearSelection() {
+    if (selectedSegment) {
+        selectedSegment = null;
+        hideDeleteButton();
+        render();
+    }
+}
+
+export function deleteSelectedSegment() {
+    if (!selectedSegment) return;
+    pushHistory({ type: 'delete', segment: { ...selectedSegment } });
+    const index = segments.indexOf(selectedSegment);
+    if (index !== -1) {
+        segments.splice(index, 1);
+        updatePossiblePoints(segments);
+        clearSelection();
+        render();
+        refreshLogs();
+        if (typeof onDrawingChanged === 'function') onDrawingChanged();
+        setStatus('Отрезок удалён');
+    }
+}
+
+export function attachEvents() {
+    if (!canvas) return;
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseup', onMouseUp);
+}
+
+export function detachEvents() {
+    if (!canvas) return;
+    canvas.removeEventListener('mousedown', onMouseDown);
+    canvas.removeEventListener('mousemove', onMouseMove);
+    canvas.removeEventListener('mouseup', onMouseUp);
+}
+
+export function clearDrawing() {
+    clearSegments(); clearNamedPoints(); clearPossiblePoints();
+    clearSegmentLog(); clearNamedPointLog(); clearAnalysis();
+    updatePossiblePointLog([]);
+    startPoint = null; endPoint = null;
+    actionHistory = [];
+    activeLabel = null;
+    selectedSegment = null;
+    resetAllButtons(); setActivePointBtn(null);
+    hideDeleteButton();
+    if (typeof onDrawingChanged === 'function') onDrawingChanged();
+    render();
+}
+
+export function undoLastAction() {
+    if (startPoint) { startPoint = null; endPoint = null; setStatus('Сброшено'); render(); return; }
+    if (!actionHistory.length) { setStatus('Нет действий для отмены'); return; }
+    const last = actionHistory.pop();
+    if (last.type === 'add') {
+        const removed = segments.pop();
+        if (removed) { updatePossiblePoints(segments); clearSelection(); render(); refreshLogs(); setStatus('Отрезок удалён (отмена)'); }
+    } else if (last.type === 'delete') {
+        segments.push(last.segment);
+        updatePossiblePoints(segments); clearSelection(); render(); refreshLogs(); setStatus('Отрезок восстановлен (отмена)');
+    } else if (last.type === 'move') {
+        segments.splice(0, segments.length, ...last.oldSegments);
+        updatePossiblePoints(segments); clearSelection(); render(); refreshLogs(); setStatus('Перемещение отменено');
+    }
+    if (typeof onDrawingChanged === 'function') onDrawingChanged();
+}
+
+export function getSegments() { return segments; }
+export let onDrawingChanged = null;
+export function setOnDrawingChanged(callback) { onDrawingChanged = callback; }
+export function redraw() { updatePossiblePoints(segments); render(); refreshLogs(); }
+`,
+
+    // ===== main.js (полный, с навигацией) =====
+    'src/scripts/main.js':
+`import { initCanvas, canvas } from './canvas.js';
+import {
+    initUI,
+    setStatus, setResult, clearAnalysis, setAnalysis,
+    startHintTimer, hintBar, hintBtn, clearBtn, undoBtn, checkBtn, deleteBtn,
+    getActivePointBtn, disablePointBtn, enablePointBtn, resetAllButtons, setActivePointBtn
+} from './ui.js';
+import { lessons, tasks } from './taskConfig.js';
+import {
+    markLessonCompleted, isLessonCompleted,
+    saveAppState as saveAppStateToStorage,
+    loadAppState as loadAppStateFromStorage
+} from './progress.js';
+import {
+    attachEvents, detachEvents, clearDrawing,
+    undoLastAction, getSegments, setOnDrawingChanged, redraw,
+    deleteSelectedSegment
+} from './drawing.js';
+
+console.log('🚀 main.js загружен!');
+
+let currentView = null;
+let currentTaskId = null;
+let appState = loadAppStateFromStorage();
+
+setOnDrawingChanged(() => {
+    if (!currentView) return;
+    appState[currentView] = { segments: getSegments().slice() };
+    saveAppStateToStorage(appState);
 });
 
-// ---- Обработчики основных кнопок ----
-function handleClear() {
-    clearSegments();
-    clearNamedPoints();
-    clearPossiblePoints();
-    clearSegmentLog();
-    clearNamedPointLog();
-    clearAnalysis();
-    updatePossiblePointLog([]);
-    startPoint = null;
-    endPoint = null;
-    resetAllButtons();
-    setActivePointBtn(null);
-    activeLabel = null;
-    actionHistory = [];
-    setStatus('Всё стёрто! Кликни в любое место, чтобы начать 🧹');
-    render();
+function navigateTo(section) {
+    detachEvents();
+    if (currentView && currentTaskId) {
+        appState[currentView] = { segments: getSegments().slice() };
+        saveAppStateToStorage(appState);
+    }
+    const oldCanvas = document.querySelector('canvas');
+    if (oldCanvas) oldCanvas.remove();
+
+    if (section === 'intro') showIntro();
+    else if (section === 'block1') showBlockMenu();
+    else if (section.startsWith('lesson')) {
+        if (section.includes('-task')) showTask(section);
+        else if (section.endsWith('-intro')) showLessonIntro(section.replace('-intro', ''));
+        else showLessonMenu(section);
+    } else {
+        document.getElementById('dynamic-content').innerHTML = '<p>Раздел не найден.</p>';
+    }
+    updateSidebarActive(section);
 }
 
-function handleUndo() {
-    // если строили временный отрезок – сбрасываем его
-    if (startPoint) {
-        startPoint = null;
-        endPoint = null;
-        setStatus('Начальная точка сброшена. Начни сначала 🔄');
-        render();
-        return;
+function showIntro() {
+    currentView = 'intro'; currentTaskId = null;
+    document.getElementById('dynamic-content').innerHTML = '<h2>Добро пожаловать!</h2><p>Эта программа поможет вам освоить геометрию «с нуля» или исправить трудности.</p>';
+}
+
+function showBlockMenu() {
+    currentView = 'block1'; currentTaskId = null;
+    let html = '<h2>Блок 1. Учимся рисовать первичные чертежи</h2><ul>';
+    for (const [lessonId, lesson] of Object.entries(lessons)) {
+        html += '<li><a href="#" data-section="' + lessonId + '">' + lesson.title + '</a></li>';
     }
-    if (actionHistory.length === 0) {
-        setStatus('Нет действий для отмены 🙈');
-        return;
+    html += '</ul>';
+    document.getElementById('dynamic-content').innerHTML = html;
+}
+
+function showLessonMenu(lessonId) {
+    currentView = lessonId; currentTaskId = null;
+    const lesson = lessons[lessonId];
+    if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; }
+    let html = '<h2>' + lesson.title + '</h2><ul>';
+    html += '<li><a href="#" data-section="' + lessonId + '-intro">Введение</a></li>';
+    for (const task of lesson.tasks) {
+        html += '<li><a href="#" data-section="' + task.id + '">' + task.title + '</a></li>';
     }
-    const lastAction = actionHistory.pop();
-    if (lastAction.type === 'point') {
-        const removed = removeLastNamedPoint();
-        if (removed) {
-            removeLastNamedPointLog();
-            enablePointBtn(removed.label);
-            setStatus('Точка ' + removed.label + ' удалена ↩️');
-            setActivePointBtn(null);
-            activeLabel = null;
-            render();
-            refreshAllLogs();
+    html += '</ul>';
+    document.getElementById('dynamic-content').innerHTML = html;
+}
+
+function showLessonIntro(lessonId) {
+    currentView = lessonId + '-intro'; currentTaskId = null;
+    const lesson = lessons[lessonId];
+    if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; }
+    document.getElementById('dynamic-content').innerHTML = '<h2>' + lesson.title + '</h2>' + (lesson.intro || '');
+}
+
+function showTask(taskId) {
+    currentView = taskId;
+    let taskConfigId = null;
+    for (const lesson of Object.values(lessons)) {
+        const found = lesson.tasks.find(t => t.id === taskId);
+        if (found) { taskConfigId = found.taskConfigId; break; }
+    }
+    if (!taskConfigId) { document.getElementById('dynamic-content').innerHTML = '<p>Задание не найдено.</p>'; return; }
+    currentTaskId = taskConfigId;
+
+    const taskTitle = getTaskTitle(taskId);
+    const html = generateTaskHTML(taskTitle);
+    document.getElementById('dynamic-content').innerHTML = html;
+
+    const canvasEl = document.getElementById('lesson-canvas');
+    if (canvasEl) {
+        initCanvas(canvasEl);
+        initUI('lesson');
+        const state = appState[taskId];
+        if (state && state.segments) {
+            const segs = getSegments();
+            segs.splice(0, segs.length, ...state.segments);
+            redraw();
+        } else {
+            clearDrawing();
         }
-    } else if (lastAction.type === 'segment') {
-        const removed = removeLastSegment();
-        if (removed) {
-            removeLastSegmentLog();
-            refreshPossiblePoints();
-            render();
-            refreshAllLogs();
-            setStatus('Последний отрезок удалён ↩️');
-        }
+        attachEvents();
+        if (clearBtn) clearBtn.onclick = clearDrawing;
+        if (undoBtn) undoBtn.onclick = undoLastAction;
+        if (checkBtn) checkBtn.onclick = handleCheck;
+        if (hintBtn) hintBtn.onclick = handleHint;
+        if (deleteBtn) deleteBtn.onclick = deleteSelectedSegment;
+        initHintTimer();
+        redraw();
     }
+}
+
+function getTaskTitle(taskId) {
+    for (const lesson of Object.values(lessons)) {
+        const task = lesson.tasks.find(t => t.id === taskId);
+        if (task) return task.title;
+    }
+    return 'Задание';
+}
+
+function generateTaskHTML(title) {
+    return '<div class="header">' +
+        '<h1 class="task-title">' + title + '</h1>' +
+        '<h2 class="task-subtitle">Нарисуйте два пересекающихся отрезка</h2>' +
+        '</div>' +
+        '<div class="workspace">' +
+        '<div class="left-buttons"></div>' +
+        '<div class="canvas-wrapper">' +
+        '<canvas id="lesson-canvas" width="800" height="600"></canvas>' +
+        '<div class="info" id="status">…</div>' +
+        '<div class="result-area" id="resultArea"></div>' +
+        '</div>' +
+        '<div class="right-buttons">' +
+        '<button class="undoBtn">↩️ Отменить</button>' +
+        '<button class="clearBtn">🧹 Очистить всё</button>' +
+        '<button class="checkBtn">✅ Проверить</button>' +
+        '<button class="hintBtn" disabled>💡 Подсказка (30)</button>' +
+        '<div class="hintProgress"><div class="hintBar"></div></div>' +
+        '<button id="deleteSegmentBtn" style="display:none; background:#e74c3c; margin-top:10px;">🗑️ Удалить отрезок</button>' +
+        '</div>' +
+        '<div class="right-panel">' +
+        '<div class="log-section"><h2>📍 Возможные точки</h2><ul class="possiblePointLog"><li class="empty-log">Пока нет возможных точек</li></ul></div>' +
+        '<div class="log-section"><h2>📋 Отрезки</h2><ul class="segmentLogList"><li class="empty-log">Пока нет отрезков</li></ul></div>' +
+        '<div class="log-section"><h2>🧩 Производные отрезки</h2><ul class="derivedSegmentLog"><li class="empty-log">Пока нет производных отрезков</li></ul></div>' +
+        '<div class="log-section"><h2>🔍 Анализ чертежа</h2><ul class="analysisLog"><li class="empty-log">Нажми «Проверить»</li></ul></div>' +
+        '</div>' +
+        '</div>';
 }
 
 function handleCheck() {
-    const analysis = performAnalysis();
+    if (!currentTaskId || !tasks[currentTaskId]) return;
+    const segments = getSegments();
+    const { result, analysis } = tasks[currentTaskId].check(segments);
+    setResult(result);
     setAnalysis(analysis);
-    setResult('Анализ завершён');
-    setStatus('✅ Анализ обновлён');
+    if (result.includes('✅') && currentView) {
+        const added = markLessonCompleted(currentView);
+        if (added) { updateSidebarProgress(); setStatus('✅ Задача выполнена! Урок отмечен как пройденный.'); }
+    }
 }
 
 function handleHint() {
-    const { result, analysis } = getHintMessage(segments);
+    if (!currentTaskId || !tasks[currentTaskId]) return;
+    const { result, analysis } = tasks[currentTaskId].hint(getSegments());
     setResult(result);
     setAnalysis(analysis);
-    setStatus('💡 Подсказка обновлена');
 }
 
 function initHintTimer() {
-    startHintTimer(2,   // 2 секунды задержки перед активацией
-        () => {},
-        () => { console.log('Подсказка доступна'); }
-    );
+    if (!hintBar || !hintBtn) return;
+    startHintTimer(2, () => {}, () => console.log('Подсказка доступна'));
 }
 
-// ---- Привязка обработчиков и первый запуск ----
-onCanvasClick(handleCanvasClick);
-onClearClick(handleClear);
-onUndoClick(handleUndo);
-onCheckClick(handleCheck);
-onHintClick(handleHint);
+function updateSidebarProgress() {
+    document.querySelectorAll('.sidebar-menu a[data-task]').forEach(a => {
+        const taskId = a.dataset.task;
+        if (isLessonCompleted(taskId)) a.classList.add('completed');
+        else a.classList.remove('completed');
+    });
+}
 
-render();                 // первая отрисовка
-refreshPossiblePoints();
-refreshAllLogs();
+function buildSidebarMenu() {
+    const menu = document.getElementById('sidebar-menu');
+    menu.innerHTML = '';
 
-setStatus('🎨 <b>Как рисовать отрезок:</b><br>Кликни два раза на узлы сетки (начало и конец).<br><br>📍 <b>Как поставить точку:</b><br>Нажми кнопку с буквой (A–E), потом кликни<br>на нужное место рядом с Т1, Т2...');
+    const introLi = document.createElement('li');
+    introLi.innerHTML = '<a href="#" data-section="intro">Введение</a>';
+    menu.appendChild(introLi);
 
-initHintTimer();          // запускаем таймер подсказки`
+    const block1Li = document.createElement('li');
+    block1Li.innerHTML = '<a href="#" class="block-title" data-section="block1">Блок 1. Учимся рисовать первичные чертежи</a>';
+    const block1Submenu = document.createElement('ul');
+    block1Submenu.className = 'submenu';
+
+    for (const [lessonId, lesson] of Object.entries(lessons)) {
+        const lessonLi = document.createElement('li');
+        lessonLi.innerHTML = '<a href="#" data-section="' + lessonId + '">' + lesson.title + '</a>';
+        const lessonSubmenu = document.createElement('ul');
+        lessonSubmenu.className = 'submenu';
+
+        const introTaskLi = document.createElement('li');
+        introTaskLi.innerHTML = '<a href="#" data-section="' + lessonId + '-intro">Введение</a>';
+        lessonSubmenu.appendChild(introTaskLi);
+
+        for (const task of lesson.tasks) {
+            const taskLi = document.createElement('li');
+            taskLi.innerHTML = '<a href="#" data-task="' + task.id + '" data-section="' + task.id + '">' + task.title + '</a>';
+            lessonSubmenu.appendChild(taskLi);
+        }
+
+        lessonLi.appendChild(lessonSubmenu);
+        block1Submenu.appendChild(lessonLi);
+    }
+
+    block1Li.appendChild(block1Submenu);
+    menu.appendChild(block1Li);
+
+    document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo(link.dataset.section);
+        });
+    });
+}
+
+function updateSidebarActive(section) {
+    document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+    const link = document.querySelector('[data-section="' + section + '"]');
+    if (link) link.classList.add('active');
+    updateSidebarProgress();
+}
+
+document.getElementById('dynamic-content').addEventListener('click', (e) => {
+    const target = e.target.closest('a[data-section]');
+    if (target) {
+        e.preventDefault();
+        navigateTo(target.dataset.section);
+    }
+});
+
+buildSidebarMenu();
+navigateTo('intro');
+`
 };
 
-// ========== ЗАПИСЬ ВСЕХ ФАЙЛОВ ==========
-console.log('🔄 Обновление скриптов...');
+// ===== ЗАПИСЬ ВСЕХ ФАЙЛОВ =====
+console.log('🔄 Полное обновление проекта...');
 for (const [filePath, content] of Object.entries(files)) {
     const fullPath = path.join(PROJECT_DIR, filePath);
     const dir = path.dirname(fullPath);
-    // Если папка не существует – создаём её рекурсивно
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-    // Записываем файл с содержимым в кодировке UTF-8
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(fullPath, content, 'utf8');
     console.log('✅ ' + filePath);
 }
-
-console.log('\n🎉 Готово! Теперь выполните:');
-console.log('  git add .');
-console.log('  git commit -m "Обновление скриптов с комментариями"');
-console.log('  git push');
+console.log('\n🎉 Готово! Запустите node server.js и проверьте проект.');
