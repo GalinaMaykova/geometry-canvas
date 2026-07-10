@@ -31,8 +31,8 @@ body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 .pointsBtn { background: #3498db; color: white; }
 .pointsBtn.active { background: #2980b9; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2980b9; }
 .point-buttons-container {
-    display: none; flex-wrap: wrap; gap: 5px; margin-top: 5px;
-    background: #f0f0f0; padding: 8px; border-radius: 6px;  /* <-- добавлен фон */
+    display: none; flex-direction: column; gap: 5px; margin-top: 5px;
+    background: #f0f0f0; padding: 8px; border-radius: 6px;
 }
 .point-buttons-container.visible { display: flex; }
 .point-buttons-container .point-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #3498db; background: white; color: #3498db; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; }

@@ -21,7 +21,6 @@ export function initUI(prefix) {
     pointsBtn = document.querySelector('.pointsBtn');
     eraserBtn = document.querySelector('.eraserBtn');
     pointButtonsContainer = document.getElementById('pointButtonsContainer');
-    console.log('initUI: pointButtonsContainer =', pointButtonsContainer);
 }
 
 export function setStatus(text) { if (statusEl) statusEl.innerHTML = text; }
@@ -123,53 +122,50 @@ export function setPointerActive() {
     if (lineBtn) lineBtn.classList.remove('active');
     if (pointsBtn) pointsBtn.classList.remove('active');
     if (eraserBtn) eraserBtn.classList.remove('active');
-    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+    hidePointContainer();
 }
 export function setLineActive() {
     if (lineBtn) lineBtn.classList.add('active');
     if (pointerBtn) pointerBtn.classList.remove('active');
     if (pointsBtn) pointsBtn.classList.remove('active');
     if (eraserBtn) eraserBtn.classList.remove('active');
-    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+    hidePointContainer();
 }
 export function setPointsActive() {
-    console.log('setPointsActive вызвана');
     if (pointsBtn) pointsBtn.classList.add('active');
     if (pointerBtn) pointerBtn.classList.remove('active');
     if (lineBtn) lineBtn.classList.remove('active');
     if (eraserBtn) eraserBtn.classList.remove('active');
-    if (pointButtonsContainer) {
-        pointButtonsContainer.classList.add('visible');
-        pointButtonsContainer.style.display = 'flex';   // принудительно
-        console.log('Контейнер точек: classList=', pointButtonsContainer.classList);
-        console.log('Контейнер точек: style.display=', pointButtonsContainer.style.display);
-        console.log('Контейнер точек: размеры', pointButtonsContainer.offsetWidth, pointButtonsContainer.offsetHeight);
-        console.log('Контейнер точек: children=', pointButtonsContainer.children.length);
-    } else {
-        console.error('pointButtonsContainer не найден!');
-    }
+    showPointContainer();
 }
 export function setEraserActive() {
     if (eraserBtn) eraserBtn.classList.add('active');
     if (pointerBtn) pointerBtn.classList.remove('active');
     if (lineBtn) lineBtn.classList.remove('active');
     if (pointsBtn) pointsBtn.classList.remove('active');
-    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+    hidePointContainer();
 }
 export function resetTools() {
     if (pointerBtn) pointerBtn.classList.remove('active');
     if (lineBtn) lineBtn.classList.remove('active');
     if (pointsBtn) pointsBtn.classList.remove('active');
     if (eraserBtn) eraserBtn.classList.remove('active');
-    if (pointButtonsContainer) pointButtonsContainer.classList.remove('visible');
+    hidePointContainer();
+}
+
+function showPointContainer() {
+    if (!pointButtonsContainer) return;
+    pointButtonsContainer.classList.add('visible');
+    pointButtonsContainer.style.display = 'flex';
+}
+function hidePointContainer() {
+    if (!pointButtonsContainer) return;
+    pointButtonsContainer.classList.remove('visible');
+    pointButtonsContainer.style.display = '';
 }
 
 export function populatePointButtons(letters) {
-    console.log('populatePointButtons вызвана с буквами:', letters);
-    if (!pointButtonsContainer) {
-        console.error('populatePointButtons: контейнер не найден!');
-        return;
-    }
+    if (!pointButtonsContainer) return;
     pointButtonsContainer.innerHTML = '';
     letters.forEach(letter => {
         const btn = document.createElement('button');
@@ -179,5 +175,4 @@ export function populatePointButtons(letters) {
         pointButtonsContainer.appendChild(btn);
     });
     pointBtns = document.querySelectorAll('.point-btn');
-    console.log('Добавлены кнопки:', letters, 'всего кнопок:', pointButtonsContainer.children.length);
 }

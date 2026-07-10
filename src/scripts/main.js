@@ -15,7 +15,7 @@ import {
 import {
     attachEvents, detachEvents, clearDrawing,
     undoLastAction, getSegments, setOnDrawingChanged, redraw,
-    setTool, setAllowedLetters
+    setTool, setAllowedLetters, updatePointButtonsState
 } from './drawing.js';
 import { namedPoints } from './points.js';
 
@@ -27,14 +27,20 @@ let appState = loadAppStateFromStorage();
 
 setOnDrawingChanged(() => {
     if (!currentView) return;
-    appState[currentView] = { segments: getSegments().slice() };
+    appState[currentView] = {
+        segments: getSegments().slice(),
+        namedPoints: namedPoints.slice()
+    };
     saveAppStateToStorage(appState);
 });
 
 function navigateTo(section) {
     detachEvents();
     if (currentView && currentTaskId) {
-        appState[currentView] = { segments: getSegments().slice() };
+        appState[currentView] = {
+            segments: getSegments().slice(),
+            namedPoints: namedPoints.slice()
+        };
         saveAppStateToStorage(appState);
     }
     const oldCanvas = document.querySelector('canvas');
@@ -104,9 +110,14 @@ function showTask(taskId) {
         initCanvas(canvasEl);
         initUI('lesson');
         const state = appState[taskId];
-        if (state && state.segments) {
-            const segs = getSegments();
-            segs.splice(0, segs.length, ...state.segments);
+        if (state) {
+            if (state.segments) {
+                const segs = getSegments();
+                segs.splice(0, segs.length, ...state.segments);
+            }
+            if (state.namedPoints) {
+                namedPoints.splice(0, namedPoints.length, ...state.namedPoints);
+            }
             redraw();
         } else {
             clearDrawing();
@@ -115,6 +126,7 @@ function showTask(taskId) {
 
         if (letters.length > 0) {
             setAllowedLetters(letters);
+            updatePointButtonsState();
             if (pointsBtn) pointsBtn.style.display = 'inline-block';
             if (pointButtonsContainer) pointButtonsContainer.style.display = 'none';
         } else {
