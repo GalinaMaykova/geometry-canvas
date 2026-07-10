@@ -1,4 +1,7 @@
-export let canvas, ctx, W, H;
+export let canvas = null;
+export let ctx = null;
+export let W = 0;
+export let H = 0;
 
 export function initCanvas(canvasElement) {
     canvas = canvasElement;
