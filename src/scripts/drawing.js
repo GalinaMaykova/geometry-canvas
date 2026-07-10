@@ -22,7 +22,6 @@ import {
 
 console.log('🔧 drawing.js загружен');
 
-// ===================== Состояние редактора =====================
 let startPoint = null;
 let endPoint = null;
 let actionHistory = [];
@@ -225,12 +224,32 @@ function deleteSegmentWithPoints(seg) {
 }
 function deleteNamedPoint(np) { pushHistory({ type: 'deleteNamedPoint', point: { ...np } }); const index = namedPoints.indexOf(np); if (index !== -1) { namedPoints.splice(index, 1); enablePointBtn(np.label); render(); refreshLogs(); if (typeof onDrawingChanged === 'function') onDrawingChanged(); setStatus('Точка ' + np.label + ' удалена'); } }
 
+// ===================== Публичные методы =====================
+
+/**
+ * Устанавливает инструмент (указатель, линия, точки, ластик).
+ * Больше не переключает на указатель при повторном вызове с тем же инструментом.
+ */
 export function setTool(tool) {
-    if (tool === currentTool) tool = 'pointer';
-    currentTool = tool; startPoint = null; endPoint = null; eraserHoverTarget = null;
-    if (tool === 'pointer') setPointerActive(); else if (tool === 'line') setLineActive(); else if (tool === 'point') setPointsActive(); else if (tool === 'eraser') setEraserActive(); else resetTools();
+    currentTool = tool;
+    startPoint = null;
+    endPoint = null;
+    eraserHoverTarget = null;
+
+    if (tool === 'pointer') setPointerActive();
+    else if (tool === 'line') setLineActive();
+    else if (tool === 'point') setPointsActive();
+    else if (tool === 'eraser') setEraserActive();
+    else resetTools();
+
     render();
 }
+
+/** Возвращает текущий инструмент (нужно для main.js) */
+export function getCurrentTool() {
+    return currentTool;
+}
+
 export function setAllowedLetters(letters) {
     allowedLetters = letters; populatePointButtons(letters); activeLabel = null; setActivePointBtn(null); resetAllButtons();
     document.querySelectorAll('.point-btn').forEach(btn => { btn.addEventListener('click', () => { if (currentTool !== 'point') return; const label = btn.dataset.label; if (btn.disabled) return; if (btn.classList.contains('active')) { btn.classList.remove('active'); setActivePointBtn(null); activeLabel = null; setStatus('Выбор точки отменён'); } else { document.querySelectorAll('.point-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); activeLabel = label; setStatus('Выбрана точка ' + label + '. Кликните рядом с возможной точкой.'); } }); });

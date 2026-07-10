@@ -15,7 +15,7 @@ import {
 import {
     attachEvents, detachEvents, clearDrawing,
     undoLastAction, getSegments, setOnDrawingChanged, redraw,
-    setTool, setAllowedLetters
+    setTool, setAllowedLetters, getCurrentTool   // <-- новый импорт
 } from './drawing.js';
 import { namedPoints } from './points.js';
 
@@ -31,6 +31,7 @@ setOnDrawingChanged(() => {
     saveAppStateToStorage(appState);
 });
 
+// ===================== Навигация =====================
 function navigateTo(section) {
     detachEvents();
     if (currentView && currentTaskId) { appState[currentView] = { segments: getSegments().slice(), namedPoints: namedPoints.slice() }; saveAppStateToStorage(appState); }
@@ -48,6 +49,7 @@ function showIntro() { currentView = 'intro'; currentTaskId = null; document.get
 function showBlockMenu() { currentView = 'block1'; currentTaskId = null; let html = '<h2>Блок 1. Учимся рисовать первичные чертежи</h2><ul>'; for (const [lessonId, lesson] of Object.entries(lessons)) html += '<li><a href="#" data-section="' + lessonId + '">' + lesson.title + '</a></li>'; html += '</ul>'; document.getElementById('dynamic-content').innerHTML = html; }
 function showLessonMenu(lessonId) { currentView = lessonId; currentTaskId = null; const lesson = lessons[lessonId]; if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; } let html = '<h2>' + lesson.title + '</h2><ul>'; html += '<li><a href="#" data-section="' + lessonId + '-intro">Введение</a></li>'; for (const task of lesson.tasks) html += '<li><a href="#" data-section="' + task.id + '">' + task.title + '</a></li>'; html += '</ul>'; document.getElementById('dynamic-content').innerHTML = html; }
 function showLessonIntro(lessonId) { currentView = lessonId + '-intro'; currentTaskId = null; const lesson = lessons[lessonId]; if (!lesson) { document.getElementById('dynamic-content').innerHTML = '<p>Урок не найден.</p>'; return; } document.getElementById('dynamic-content').innerHTML = '<h2>' + lesson.title + '</h2>' + (lesson.intro || ''); }
+
 function showTask(taskId) {
     currentView = taskId; let taskConfigId = null;
     for (const lesson of Object.values(lessons)) { const found = lesson.tasks.find(t => t.id === taskId); if (found) { taskConfigId = found.taskConfigId; break; } }
@@ -65,14 +67,34 @@ function showTask(taskId) {
         attachEvents();
         if (letters.length > 0) { setAllowedLetters(letters); if (pointsBtn) pointsBtn.style.display = 'inline-block'; if (pointButtonsContainer) pointButtonsContainer.style.display = 'none'; }
         else { if (pointsBtn) pointsBtn.style.display = 'none'; if (pointButtonsContainer) pointButtonsContainer.style.display = 'none'; }
-        setTool('line');
-        if (clearBtn) clearBtn.onclick = clearDrawing; if (undoBtn) undoBtn.onclick = undoLastAction;
-        if (checkBtn) checkBtn.onclick = handleCheck; if (hintBtn) hintBtn.onclick = handleHint;
-        if (pointerBtn) pointerBtn.onclick = () => setTool('pointer'); if (lineBtn) lineBtn.onclick = () => setTool('line');
-        if (pointsBtn) pointsBtn.onclick = () => setTool('point'); if (eraserBtn) eraserBtn.onclick = () => setTool('eraser');
+        setTool('line');   // всегда начинаем с линии
+
+        // Привязка кнопок с учётом логики повтора
+        if (clearBtn) clearBtn.onclick = clearDrawing;
+        if (undoBtn) undoBtn.onclick = undoLastAction;
+        if (checkBtn) checkBtn.onclick = handleCheck;
+        if (hintBtn) hintBtn.onclick = handleHint;
+        if (pointerBtn) pointerBtn.onclick = () => {
+            if (getCurrentTool() === 'pointer') setTool('pointer');   // остаёмся на указателе
+            else setTool('pointer');
+        };
+        if (lineBtn) lineBtn.onclick = () => {
+            if (getCurrentTool() === 'line') setTool('pointer');      // повтор → указатель
+            else setTool('line');
+        };
+        if (eraserBtn) eraserBtn.onclick = () => {
+            if (getCurrentTool() === 'eraser') setTool('pointer');
+            else setTool('eraser');
+        };
+        if (pointsBtn) pointsBtn.onclick = () => {
+            if (getCurrentTool() === 'point') setTool('pointer');
+            else setTool('point');
+        };
+
         initHintTimer(); redraw();
     }
 }
+
 function getTaskTitle(taskId) { for (const lesson of Object.values(lessons)) { const task = lesson.tasks.find(t => t.id === taskId); if (task) return task.title; } return 'Задание'; }
 function generateTaskHTML(title, letters) {
     const pointsBtnHtml = letters.length > 0 ? '<button class="pointsBtn">🔤 Точки</button>' : '';
